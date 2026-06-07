@@ -1,5 +1,7 @@
 # ai-write-flow
 
+![version](https://img.shields.io/badge/version-v0.1-blue)
+
 技术博客写作 Agent Skill，适用于公众号长文、AI 工具评测、教程指南等场景。
 
 支持从选题讨论、调研核查、骨架确认到正文撰写和三遍审校的完整 6 步写作流程，也支持对已有文章一键审校降 AI 味。
