@@ -1,0 +1,19 @@
+# 运行时目录（不纳入版本控制）
+workspace/briefs/
+workspace/research/
+workspace/output/
+workspace/images/
+
+# 系统文件
+.DS_Store
+**/.DS_Store
+
+# Claude Code 本地配置
+.claude/
+
+# 打包产物
+dist/
+
+# Python
+__pycache__/
+*.pyc

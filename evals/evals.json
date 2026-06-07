@@ -1,0 +1,71 @@
+{
+  "version": "1.0",
+  "skill": "ai-write-flow",
+  "scenarios": [
+    {
+      "id": "full-workflow",
+      "name": "完整写作流程",
+      "description": "用户给定主题，期望走 Step 1-6 完整流程",
+      "input": {
+        "user_message": "帮我写一篇关于 Claude Code 的 MCP 工具开发的文章，目标读者是有一定经验的 AI 开发者",
+        "briefs_files": []
+      },
+      "expected_behavior": [
+        "Step 1 输出工作区路径和素材状态（briefs 为空）",
+        "Step 2 进入 publish_mode，执行 Layer 1-4 完整调研",
+        "Step 3 提供 3-4 个选题方向，等待用户选择",
+        "Step 4 先输出骨架等待确认，再填充正文",
+        "Step 5 执行三遍审校",
+        "Step 6 输出到 workspace/output/ 并报告路径"
+      ],
+      "expected_not": [
+        "不跳过选题确认直接写正文",
+        "不在未获用户确认时从骨架直接进入正文",
+        "不将审校报告写入最终 .md 文件"
+      ]
+    },
+    {
+      "id": "review-only",
+      "name": "审校降 AI 味",
+      "description": "用户给已有文章，要求降 AI 味/审校，跳过 Step 1-4",
+      "input": {
+        "user_message": "帮我审校这篇文章，降低 AI 味：\n\n{content_of: evals/files/sample-article-ai-heavy.md}",
+        "briefs_files": []
+      },
+      "expected_behavior": [
+        "识别为审校快捷入口，跳过 Steps 1-4",
+        "直接加载 style-guide.md 和 checklist.md",
+        "执行三遍审校（内容 → 风格 → 细节）",
+        "审校报告在对话窗口展示",
+        "修订后全文在对话窗口输出"
+      ],
+      "expected_not": [
+        "不执行 Step 1-4",
+        "不保存审校报告到文件",
+        "不跳过任何一遍审校"
+      ]
+    },
+    {
+      "id": "brief-discrepancy-block",
+      "name": "briefs 差异阻断",
+      "description": "用户 briefs 含高风险事实，Step 2 应输出差异确认并阻断",
+      "input": {
+        "user_message": "基于 briefs 里的素材帮我写文章",
+        "briefs_files": ["evals/files/sample-brief-risky-facts.md"]
+      },
+      "expected_behavior": [
+        "Step 1 成功加载 briefs 文件，输出材料清单",
+        "Step 2 进入 brief_first_verify_mode",
+        "Stage A 提取候选事实，标记为 Tier 1 Candidate",
+        "Stage B 对高风险字段（产品名称、价格、版本）做定点核查",
+        "Stage C 发现差异，输出【差异确认】格式并阻断",
+        "等待用户确认后才继续 Step 3"
+      ],
+      "expected_not": [
+        "不把 Tier 1 Candidate 直接视为 Tier 1 Final",
+        "不在有差异时跳过阻断直接进入 Step 3",
+        "不遗漏高风险字段的核查"
+      ]
+    }
+  ]
+}
