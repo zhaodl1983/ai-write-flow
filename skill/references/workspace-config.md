@@ -6,7 +6,7 @@ Resolve the runtime workspace at the start of every session using this priority 
 
 1. If the user explicitly provides a workspace path in this conversation → use that path
 2. If the environment variable `AI_WRITE_FLOW_WORKSPACE` is set → use that path
-3. If `/Users/zhaodonglin/Documents/ai-write-flow/workspace` exists on disk → use it (personal local mode)
+3. If `~/Documents/workspace/ai-write-flow` exists on disk → use it (convention default)
 4. Otherwise → ask the user where to create the workspace before proceeding
 
 Do not write any runtime files into the installed Skill directory.

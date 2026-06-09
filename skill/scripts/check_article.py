@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 # check_article.py -- check final Markdown article quality
-# Banned expressions and thresholds are derived from style-guide.md (single source of truth).
+# Style rules derived from style-guide.md; structure rules from ai-write-flow article spec.
 
 import re
 import sys
 from pathlib import Path
+
+# Circled number sequence for #### subheadings
+NUMBERED_CIRCLES = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨']
+
+CONCLUSION_TITLE = "写在最后"
 
 # style-guide.md § 禁用表达清单 — AI 腔套话 + 书面词汇 + 空洞表达 + 夸张美学 + 模糊归因 + 助手感开场白
 BANNED_EXPRESSIONS = [
@@ -12,7 +17,7 @@ BANNED_EXPRESSIONS = [
     "在当今时代", "综上所述", "总的来说", "归根结底",
     "值得注意的是", "不难发现", "显而易见", "毋庸置疑", "毫无疑问", "可以说",
     "有助于", "使得", "从而实现",
-    "首先", "其次", "最后",
+    "首先…其次", "其次…最后",
     # 书面词汇
     "显著提升", "充分利用", "进行操作", "获取结果", "实现功能", "相关方案",
     # 空洞表达
@@ -34,10 +39,140 @@ SENTENCE_ERROR = 120
 REVIEW_REPORT_MARKERS = ["【审校报告】", "【第一遍】", "【第二遍】", "【第三遍】"]
 
 
+def _strip_fenced_code(text):
+    """Remove fenced code block content to avoid false positives in heading checks."""
+    return re.sub(r'```[\s\S]*?```', '', text)
+
+
+def _parse_structure(content):
+    """
+    Parse article heading structure, skipping fenced code blocks.
+    Returns:
+      h1_count: int
+      has_h3: bool
+      opening_has_h4: bool  (#### appears before first ##)
+      sections: list of {'title': str, 'h4s': list[str], 'is_conclusion': bool}
+    """
+    clean = _strip_fenced_code(content)
+    lines = clean.split('\n')
+
+    h1_count = 0
+    has_h3 = False
+    opening_has_h4 = False
+    first_h2_seen = False
+    sections = []
+    current_section = None
+
+    for line in lines:
+        s = line.rstrip()
+        if re.match(r'^# (?!#)', s):
+            h1_count += 1
+        elif re.match(r'^## (?!#)', s):
+            first_h2_seen = True
+            title = s[3:].strip()
+            is_conclusion = (title == CONCLUSION_TITLE)
+            current_section = {'title': title, 'h4s': [], 'is_conclusion': is_conclusion}
+            sections.append(current_section)
+        elif re.match(r'^### (?!#)', s):
+            has_h3 = True
+        elif re.match(r'^#### (?!#)', s):
+            if not first_h2_seen:
+                opening_has_h4 = True
+            elif current_section is not None:
+                current_section['h4s'].append(s[5:].strip())
+
+    return h1_count, has_h3, opening_has_h4, sections
+
+
+def _check_numbering(h4s, section_title):
+    """Verify h4 subheadings start with ①②③ consecutively. Returns list of error strings."""
+    errs = []
+    for i, h4 in enumerate(h4s):
+        if i >= len(NUMBERED_CIRCLES):
+            errs.append(f"章节「{section_title}」第 {i + 1} 个 #### 超出编号范围（最多 9 个）")
+            break
+        expected = NUMBERED_CIRCLES[i]
+        if not h4.startswith(expected):
+            errs.append(
+                f"章节「{section_title}」第 {i + 1} 个 #### 编号应为 {expected}，实际开头：「{h4[:20]}」"
+            )
+    return errs
+
+
+def _check_structure(content):
+    """
+    Check Markdown structure against article spec.
+    Returns (errors: list[str], warnings: list[str]).
+    Errors block publishing; warnings are advisory only.
+    """
+    errors = []
+    warnings = []
+    h1_count, has_h3, opening_has_h4, sections = _parse_structure(content)
+
+    if h1_count == 0:
+        errors.append("缺少文章标题（#）→ 全文必须有且仅有一个 # 标题")
+        print("[ERROR] No H1 title (#) found", file=sys.stderr)
+    elif h1_count > 1:
+        errors.append(f"# 标题出现了 {h1_count} 次 → 只能出现一次")
+        print(f"[ERROR] H1 (#) appears {h1_count} times, must be exactly 1", file=sys.stderr)
+
+    if has_h3:
+        errors.append("文中存在 ### 标题 → 禁止使用 ### 层级，请改用 ## 或 ####")
+        print("[ERROR] H3 (###) headings found; ### is forbidden", file=sys.stderr)
+
+    if opening_has_h4:
+        errors.append("开头段落（# 后、第一个 ## 前）不允许出现 ####")
+        print("[ERROR] #### found in opening section before first ##", file=sys.stderr)
+
+    regular = [s for s in sections if not s['is_conclusion']]
+    conclusions = [s for s in sections if s['is_conclusion']]
+
+    if not conclusions:
+        errors.append("缺少固定结尾章节「## 写在最后」")
+        print("[ERROR] Missing required conclusion section '## 写在最后'", file=sys.stderr)
+    else:
+        if len(conclusions) > 1:
+            errors.append(f"「## 写在最后」出现了 {len(conclusions)} 次 → 只允许出现一次")
+            print(f"[ERROR] '## 写在最后' appears {len(conclusions)} times, must be exactly 1", file=sys.stderr)
+
+        if sections and not sections[-1]['is_conclusion']:
+            errors.append("「## 写在最后」后面还有其他章节 → 必须是文章最后一个 ## 章节")
+            print("[ERROR] '## 写在最后' is not the last ## section", file=sys.stderr)
+
+        for conclusion in conclusions:
+            if conclusion['h4s']:
+                errors.append("「## 写在最后」下包含 #### 小标题 → 结尾章节不得包含 ####")
+                print("[ERROR] '## 写在最后' contains #### subheadings; none allowed", file=sys.stderr)
+
+    for sec in regular:
+        h4s = sec['h4s']
+        title = sec['title']
+        if not h4s:
+            errors.append(f"章节「## {title}」缺少 #### ① 小标题 → 普通章节必须包含 #### 编号小标题组")
+            print(f"[ERROR] Section '## {title}' has no #### subheadings", file=sys.stderr)
+        else:
+            for err in _check_numbering(h4s, title):
+                errors.append(err)
+                print(f"[ERROR] Numbering error in section '## {title}'", file=sys.stderr)
+            count = len(h4s)
+            if count < 2 or count > 3:
+                warnings.append(f"章节「## {title}」有 {count} 个 #### 小标题，建议 2-3 个")
+                print(f"[WARN] Section '## {title}' has {count} #### heading(s); recommend 2-3", file=sys.stderr)
+
+    return errors, warnings
+
+
 def check(path):
     content = Path(path).read_text(encoding="utf-8")
     issues = []
+    advisory = []
 
+    # --- structure checks (style-guide.md § Markdown 标题层级规范) ---
+    struct_errors, struct_warnings = _check_structure(content)
+    issues.extend(struct_errors)
+    advisory.extend(struct_warnings)
+
+    # --- style checks (style-guide.md § 禁用表达清单) ---
     for expr in BANNED_EXPRESSIONS:
         count = content.count(expr)
         if count > 0:
@@ -73,11 +208,19 @@ def check(path):
     if issues:
         print("\n【文章质量检查报告】")
         for issue in issues:
-            print("  x " + issue)
+            print("  ✗ " + issue)
+        if advisory:
+            for w in advisory:
+                print("  ⚠ " + w)
         print("\n共发现 " + str(len(issues)) + " 个问题，请按建议修改后再发布。")
         return False
 
-    print("【文章质量检查通过】" + path)
+    if advisory:
+        print("【文章质量检查通过（含建议）】" + path)
+        for w in advisory:
+            print("  ⚠ " + w)
+    else:
+        print("【文章质量检查通过】" + path)
     return True
 
 

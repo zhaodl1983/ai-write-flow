@@ -14,14 +14,17 @@
         "Step 1 输出工作区路径和素材状态（briefs 为空）",
         "Step 2 进入 publish_mode，执行 Layer 1-4 完整调研",
         "Step 3 提供 3-4 个选题方向，等待用户选择",
-        "Step 4 先输出骨架等待确认，再填充正文",
-        "Step 5 执行三遍审校",
+        "Step 4 先输出骨架等待确认，骨架使用 # / ## / #### 三层结构，包含 ## 写在最后",
+        "Step 4 骨架中每个普通 ## 章节包含 2-3 个 #### ①②③ 小标题",
+        "Step 5 执行三遍审校，包含结构审校检查",
         "Step 6 输出到 workspace/output/ 并报告路径"
       ],
       "expected_not": [
         "不跳过选题确认直接写正文",
         "不在未获用户确认时从骨架直接进入正文",
-        "不将审校报告写入最终 .md 文件"
+        "不将审校报告写入最终 .md 文件",
+        "不在骨架中使用 ### 层级",
+        "不生成缺少 ## 写在最后 的骨架"
       ]
     },
     {
@@ -35,7 +38,7 @@
       "expected_behavior": [
         "识别为审校快捷入口，跳过 Steps 1-4",
         "直接加载 style-guide.md 和 checklist.md",
-        "执行三遍审校（内容 → 风格 → 细节）",
+        "执行三遍审校（内容 → 风格 → 细节），包含结构审校",
         "审校报告在对话窗口展示",
         "修订后全文在对话窗口输出"
       ],
@@ -65,6 +68,112 @@
         "不把 Tier 1 Candidate 直接视为 Tier 1 Final",
         "不在有差异时跳过阻断直接进入 Step 3",
         "不遗漏高风险字段的核查"
+      ]
+    },
+    {
+      "id": "structure-check-valid",
+      "name": "标准结构通过校验",
+      "description": "符合规范的文章应通过 check_article.py 结构校验（无结构错误）",
+      "input": {
+        "article_file": "evals/files/sample-article-valid-structure.md",
+        "check_command": "python3 skill/scripts/check_article.py evals/files/sample-article-valid-structure.md"
+      },
+      "expected_behavior": [
+        "check_article.py 退出码为 0",
+        "无 [ERROR] 结构相关输出",
+        "输出包含 【文章质量检查通过】 或 【文章质量检查通过（含建议）】"
+      ],
+      "expected_not": [
+        "不输出 # 标题唯一性错误",
+        "不输出 ### 禁止使用错误",
+        "不输出缺少 ## 写在最后 的错误",
+        "不输出 #### 编号错误"
+      ]
+    },
+    {
+      "id": "structure-check-invalid-h3",
+      "name": "含 ### 的文章应检查失败",
+      "description": "包含 ### 标题的文章应被 check_article.py 检测为错误并退出码非零",
+      "input": {
+        "article_file": "evals/files/sample-article-invalid-h3.md",
+        "check_command": "python3 skill/scripts/check_article.py evals/files/sample-article-invalid-h3.md"
+      },
+      "expected_behavior": [
+        "check_article.py 退出码为 1",
+        "输出包含 ### 相关错误提示",
+        "stderr 包含 [ERROR] H3 (###) headings found"
+      ],
+      "expected_not": [
+        "不输出检查通过"
+      ]
+    },
+    {
+      "id": "structure-check-invalid-opening-h4",
+      "name": "开头段落含 #### 应检查失败",
+      "description": "开头段落（# 后、第一个 ## 前）出现 #### 应被检测为错误",
+      "input": {
+        "article_file": "evals/files/sample-article-invalid-opening-h4.md",
+        "check_command": "python3 skill/scripts/check_article.py evals/files/sample-article-invalid-opening-h4.md"
+      },
+      "expected_behavior": [
+        "check_article.py 退出码为 1",
+        "输出包含开头段落不允许出现 #### 的错误提示",
+        "stderr 包含 [ERROR] #### found in opening section"
+      ],
+      "expected_not": [
+        "不输出检查通过"
+      ]
+    },
+    {
+      "id": "structure-check-invalid-missing-conclusion",
+      "name": "缺少「写在最后」应检查失败",
+      "description": "没有 ## 写在最后 结尾章节的文章应被检测为错误",
+      "input": {
+        "article_file": "evals/files/sample-article-invalid-missing-conclusion.md",
+        "check_command": "python3 skill/scripts/check_article.py evals/files/sample-article-invalid-missing-conclusion.md"
+      },
+      "expected_behavior": [
+        "check_article.py 退出码为 1",
+        "输出包含缺少固定结尾章节的错误提示",
+        "stderr 包含 [ERROR] Missing required conclusion section"
+      ],
+      "expected_not": [
+        "不输出检查通过"
+      ]
+    },
+    {
+      "id": "structure-check-invalid-numbering",
+      "name": "#### 编号不从 ① 开始应检查失败",
+      "description": "#### 小标题编号不从 ① 开始或跳号的文章应被检测为错误",
+      "input": {
+        "article_file": "evals/files/sample-article-invalid-numbering.md",
+        "check_command": "python3 skill/scripts/check_article.py evals/files/sample-article-invalid-numbering.md"
+      },
+      "expected_behavior": [
+        "check_article.py 退出码为 1",
+        "输出包含编号错误的提示",
+        "stderr 包含 [ERROR] Numbering error"
+      ],
+      "expected_not": [
+        "不输出检查通过"
+      ]
+    },
+    {
+      "id": "structure-check-invalid-no-h4",
+      "name": "普通 ## 下没有 #### 应检查失败",
+      "description": "普通 ## 章节缺少 #### ① 小标题组的文章应被检测为错误",
+      "input": {
+        "article_file": "evals/files/sample-article-invalid-no-h4.md",
+        "check_command": "python3 skill/scripts/check_article.py evals/files/sample-article-invalid-no-h4.md"
+      },
+      "expected_behavior": [
+        "check_article.py 退出码为 1",
+        "输出包含普通章节缺少 #### 的错误提示",
+        "stderr 包含 [ERROR] Section ... has no #### subheadings"
+      ],
+      "expected_not": [
+        "不跳过没有 #### 的普通 ## 章节检查",
+        "不输出检查通过"
       ]
     }
   ]

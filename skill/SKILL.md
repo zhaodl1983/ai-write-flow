@@ -1,6 +1,6 @@
 ---
 name: ai-write-flow
-version: 0.1.0
+version: 0.2.0
 description: |
   Use this skill when the user wants to write, rewrite, polish, fact-check, outline, draft, or review Chinese technical articles, AI/tooling blog posts, 公众号长文, tutorials, or existing drafts. Use for full writing workflows from input material ingestion, research, topic selection, outline approval, drafting, and three-pass review; also use when the user asks to 降AI味, 去AI腔, 润色, 改写, 审校, or make writing more natural.
 ---
@@ -34,7 +34,7 @@ description: |
 1. 加载 `references/workspace-config.md`，按以下优先级解析运行时工作区：
    - 若用户在本次对话中明确指定路径 → 使用该路径
    - 若环境变量 `AI_WRITE_FLOW_WORKSPACE` 已设置 → 使用该路径
-   - 若 `/Users/zhaodonglin/Documents/ai-write-flow/workspace` 存在 → 使用该路径（个人本地模式）
+   - 若 `~/Documents/workspace/ai-write-flow` 存在 → 使用该路径（约定默认路径）
    - 否则 → 询问用户工作区位置，等待回复后继续
 
 2. 解析工作区后检查 `{workspace}/briefs/` 目录
@@ -165,10 +165,22 @@ description: |
 **第一阶段：骨架生成**
 - 基于选定选题和 persona.md 生成文章骨架
 - 骨架包含：标题、各章节标题、每章预计字数、开头方式
+- **骨架必须严格使用以下三层标题结构（不可省略）：**
+  - `#` 文章标题（全文唯一，仅出现一次）
+  - `##` 一级章节标题（每个 `##` 是未来章节配图的候选单位）
+  - `#### ①②③` 每个 `##` 章节内的扫读小标题组
+- **结构硬约束：**
+  - 禁止使用 `###` 层级
+  - 开头段落（`#` 后、第一个 `##` 前）不允许出现 `####`
+  - 每个普通 `##` 章节建议包含 2-3 个 `####` 小标题，编号从 `①` 开始，按 `①→②→③` 连续递增
+  - 每个 `##` 内的 `####` 编号独立，重新从 `①` 开始
+  - 结尾章节固定使用 `## 写在最后`，不要求 `####` 小标题，不参与章节配图候选
 - 骨架在对话窗口展示，等待用户确认
 
 **第二阶段：正文填充**
-- 用户确认骨架后才进入正文；正文必须遵守 style-guide.md 的所有硬约束，并完成禁用表达清单检查
+- 用户确认骨架后才进入正文
+- 正文必须遵守 style-guide.md 的所有硬约束，并完成禁用表达清单检查
+- 正文中的 `####` 小标题组位于该章节所有正文段落之前
 
 **阻断规则：** 第一阶段骨架必须获得用户明确确认（"确认"/"可以"/"好的"），否则不进入第二阶段
 
@@ -185,6 +197,14 @@ description: |
 1. **第一遍：内容审校** — 技术准确性、数据一致性、逻辑结构
 2. **第二遍：风格审校（降AI味）** — 套话清理、书面词替换、结构强制项、人味增强
 3. **第三遍：细节打磨** — 句长、段落、标点、朗读顺畅度
+
+**结构审校（随三遍同步执行，发现问题即报告）：**
+- `#` 标题在全文出现且仅出现一次
+- 文中不存在 `###` 层级标题
+- 开头段落（`#` 后、第一个 `##` 前）未出现 `####`
+- 每个普通 `##` 章节包含编号 `####` 小标题组（至少 `①`）
+- 每个 `##` 内的 `####` 编号从 `①` 开始、连续递增
+- 全文包含固定结尾 `## 写在最后`
 
 **输出结构：**
 - 审校报告：在对话窗口完整展示（含每遍发现的问题）
@@ -205,7 +225,8 @@ description: |
 
 1. 将修订后全文保存到 `{workspace}/output/{YYYYMMDD}-{title-slug}.md`
 2. 文件名格式：`YYYYMMDD` 为今日日期，`title-slug` 为标题的 kebab-case 版本
-3. 输出保存路径供用户确认
+3. 落盘前最终确认稿件符合结构规范（`#` 唯一、无 `###`、普通 `##` 有 `####` ①②③、末尾有 `## 写在最后`）；如有结构缺陷，先修复再写入
+4. 输出保存路径供用户确认
 
 **阻断规则：** 文件写入失败时报错，列出路径，请用户检查目录是否存在
 

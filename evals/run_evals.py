@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """run_evals.py — 将 evals.json 从说明文件变为可执行质量门禁
 
+支持两类场景：
+  workflow  — 写作流场景，input 含 user_message + briefs_files
+  script    — 脚本校验场景，input 含 article_file + check_command
+
 检查内容：
 1. evals.json 结构完整性（必填字段、scenario 格式）
-2. briefs_files 引用的文件实际存在
+2. 文件引用实际存在（briefs_files / article_file）
 3. expected_behavior / expected_not 均为非空列表
-4. 每个 scenario 的触发路径可识别（包含已知关键词）
+4. 每个 scenario 的触发路径可识别
 
 用法：python evals/run_evals.py [evals.json 路径]
 """
@@ -18,32 +22,95 @@ EVALS_PATH = Path(__file__).parent / "evals.json"
 
 REQUIRED_TOP_FIELDS = ["version", "skill", "scenarios"]
 REQUIRED_SCENARIO_FIELDS = ["id", "name", "description", "input", "expected_behavior", "expected_not"]
-REQUIRED_INPUT_FIELDS = ["user_message", "briefs_files"]
 
-# 用于识别触发路径的关键词
-TRIGGER_KEYWORDS = [
+# workflow 类场景必须有的 input 字段
+REQUIRED_WORKFLOW_INPUT = ["user_message", "briefs_files"]
+# script 类场景必须有的 input 字段
+REQUIRED_SCRIPT_INPUT = ["article_file", "check_command"]
+
+# 用于识别触发路径的关键词（workflow 类）
+WORKFLOW_TRIGGER_KEYWORDS = [
     "Step 1", "Step 2", "Step 3", "Step 4", "Step 5", "Step 6",
     "审校", "降AI味", "降ai味", "briefs", "阻断",
 ]
 
+# 用于识别触发路径的关键词（script 类）
+SCRIPT_TRIGGER_KEYWORDS = [
+    "check_article", "exit", "ERROR", "通过", "失败", "校验",
+]
 
-def _check_trigger_path(scenario: dict) -> list[str]:
+
+def _detect_scenario_type(scenario: dict) -> str:
+    """
+    Detect scenario type based on input fields.
+    Returns 'workflow', 'script', or 'unknown'.
+    """
+    inp = scenario.get("input", {})
+    if "user_message" in inp or "briefs_files" in inp:
+        return "workflow"
+    if "article_file" in inp or "check_command" in inp:
+        return "script"
+    return "unknown"
+
+
+def _check_trigger_path(scenario: dict, sc_type: str) -> list[str]:
     """检查 expected_behavior 是否包含可识别的触发路径关键词。"""
     behaviors = scenario.get("expected_behavior", [])
     text = " ".join(behaviors)
-    if not any(kw.lower() in text.lower() for kw in TRIGGER_KEYWORDS):
-        return [f"scenario '{scenario.get('id')}' 的 expected_behavior 不包含任何已知触发路径关键词，无法自动识别流程"]
+    keywords = WORKFLOW_TRIGGER_KEYWORDS if sc_type == "workflow" else SCRIPT_TRIGGER_KEYWORDS
+    if not any(kw.lower() in text.lower() for kw in keywords):
+        return [f"scenario '{scenario.get('id')}' 的 expected_behavior 不包含任何已知触发路径关键词"]
     return []
 
 
-def _check_file_refs(scenario: dict, base_dir: Path) -> list[str]:
-    """校验 briefs_files 中引用的文件实际存在。"""
+def _check_file_refs(scenario: dict, base_dir: Path, sc_type: str) -> list[str]:
+    """校验场景引用的文件实际存在。"""
     errors = []
-    for ref in scenario.get("input", {}).get("briefs_files", []):
-        target = base_dir / ref
-        if not target.exists():
-            errors.append(f"scenario '{scenario.get('id')}' 引用文件不存在：{ref}")
-            print(f"[ERROR] Referenced file not found: {target}", file=sys.stderr)
+    inp = scenario.get("input", {})
+
+    if sc_type == "workflow":
+        for ref in inp.get("briefs_files", []):
+            target = base_dir / ref
+            if not target.exists():
+                errors.append(f"scenario '{scenario.get('id')}' 引用文件不存在：{ref}")
+                print(f"[ERROR] Referenced file not found: {target}", file=sys.stderr)
+
+    if sc_type == "script":
+        article = inp.get("article_file", "")
+        if article:
+            target = base_dir / article
+            if not target.exists():
+                errors.append(f"scenario '{scenario.get('id')}' article_file 不存在：{article}")
+                print(f"[ERROR] article_file not found: {target}", file=sys.stderr)
+
+    return errors
+
+
+def _check_input_fields(scenario: dict, sc_type: str) -> list[str]:
+    """校验 input 字段完整性（按场景类型分别验证）。"""
+    errors = []
+    inp = scenario.get("input", {})
+    sc_id = scenario.get("id", "?")
+
+    if sc_type == "workflow":
+        for field in REQUIRED_WORKFLOW_INPUT:
+            if field not in inp:
+                errors.append(f"scenario '{sc_id}'.input 缺少字段：{field}")
+                print(f"[ERROR] scenario '{sc_id}'.input missing field: {field}", file=sys.stderr)
+
+    elif sc_type == "script":
+        for field in REQUIRED_SCRIPT_INPUT:
+            if field not in inp:
+                errors.append(f"scenario '{sc_id}'.input 缺少字段：{field}")
+                print(f"[ERROR] scenario '{sc_id}'.input missing field: {field}", file=sys.stderr)
+
+    else:
+        errors.append(
+            f"scenario '{sc_id}' input 类型无法识别，需要包含 user_message/briefs_files（写作流）"
+            " 或 article_file/check_command（脚本校验）"
+        )
+        print(f"[ERROR] scenario '{sc_id}' has unrecognized input type", file=sys.stderr)
+
     return errors
 
 
@@ -73,6 +140,9 @@ def run(evals_path: Path) -> bool:
         errors.append("scenarios 列表为空，请至少添加一个场景")
         print("[ERROR] scenarios list is empty", file=sys.stderr)
 
+    workflow_count = 0
+    script_count = 0
+
     for i, sc in enumerate(scenarios):
         sc_id = sc.get("id", f"[{i}]")
 
@@ -81,10 +151,13 @@ def run(evals_path: Path) -> bool:
                 errors.append(f"scenario '{sc_id}' 缺少必填字段：{field}")
                 print(f"[ERROR] scenario '{sc_id}' missing field: {field}", file=sys.stderr)
 
-        for field in REQUIRED_INPUT_FIELDS:
-            if field not in sc.get("input", {}):
-                errors.append(f"scenario '{sc_id}'.input 缺少字段：{field}")
-                print(f"[ERROR] scenario '{sc_id}'.input missing field: {field}", file=sys.stderr)
+        sc_type = _detect_scenario_type(sc)
+        if sc_type == "workflow":
+            workflow_count += 1
+        elif sc_type == "script":
+            script_count += 1
+
+        errors.extend(_check_input_fields(sc, sc_type))
 
         if not sc.get("expected_behavior"):
             errors.append(f"scenario '{sc_id}' 的 expected_behavior 为空列表")
@@ -94,8 +167,8 @@ def run(evals_path: Path) -> bool:
             errors.append(f"scenario '{sc_id}' 的 expected_not 为空列表")
             print(f"[ERROR] scenario '{sc_id}' has empty expected_not", file=sys.stderr)
 
-        errors.extend(_check_trigger_path(sc))
-        errors.extend(_check_file_refs(sc, base_dir))
+        errors.extend(_check_trigger_path(sc, sc_type))
+        errors.extend(_check_file_refs(sc, base_dir, sc_type))
 
     if errors:
         print("\n【Eval 质量门禁检查失败】")
@@ -105,7 +178,7 @@ def run(evals_path: Path) -> bool:
         return False
 
     print(f"【Eval 质量门禁检查通过】{evals_path}")
-    print(f"  已验证 {len(scenarios)} 个场景")
+    print(f"  已验证 {len(scenarios)} 个场景（workflow: {workflow_count}，script: {script_count}）")
     return True
 
 
