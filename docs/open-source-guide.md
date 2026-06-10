@@ -51,7 +51,8 @@ bash scripts/install.sh
 | 文件 | 说明 |
 |------|------|
 | `references/persona.md` | 写作身份与风格偏好 |
-| `references/workspace-config.md` | 工作区路径与安全规则 |
+| `references/workspace-config.md` | 工作区路径与安全规则（`workspace-local.md` 不存在时的回退配置）|
+| `references/workspace-local.md` | 安装脚本自动生成，写入本机 workspace 路径；Step 1 优先读取此文件 |
 | `references/image-config.md`（可选）| 配图 API 配置（默认不启用）|
 
 ## 工作区

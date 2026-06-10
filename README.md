@@ -1,6 +1,6 @@
 # ai-write-flow
 
-![version](https://img.shields.io/badge/version-v0.2.1-blue)
+![version](https://img.shields.io/badge/version-v0.2.2-blue)
 
 技术博客写作 Agent Skill，适用于公众号长文、AI 工具评测、教程指南等场景。
 
@@ -103,7 +103,8 @@ ai-write-flow/
 │   │   ├── style-guide.md       # 写作风格硬约束（禁用词、句长、结构）
 │   │   ├── checklist.md         # 三遍审校清单
 │   │   ├── persona.md           # 作者画像（可个人定制）
-│   │   ├── workspace-config.md  # 工作区路径与安全规则
+│   │   ├── workspace-config.md  # 工作区路径与安全规则（回退配置）
+│   │   ├── workspace-local.md   # 安装脚本生成，写入本机 workspace 路径（Step 1 优先读取）
 │   │   └── image-config.md      # 配图 API 配置（可选扩展）
 │   ├── assets/
 │   │   └── brief-template.md    # 写作素材简报模板
@@ -138,7 +139,7 @@ ai-write-flow/
 | 文件 | 说明 | 建议 |
 |------|------|------|
 | `persona.md` | 写作身份、目标读者、发布平台、语气偏好 | 建议改 |
-| `workspace-config.md` | 工作区路径与安全规则 | 开源用户改 |
+| `workspace-config.md` | 工作区路径与安全规则（回退配置，`workspace-local.md` 不存在时使用）| 开源用户改 |
 | `image-config.md` | 配图 API 配置（默认不启用）| 按需改 |
 
 > `persona.md` 是软配置，`style-guide.md` 中的硬约束优先级更高，冲突时以 `style-guide.md` 为准。
