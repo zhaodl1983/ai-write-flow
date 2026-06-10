@@ -6,7 +6,7 @@
 
 支持从选题讨论、调研核查、骨架确认到正文撰写和三遍审校的完整 6 步写作流程，也支持对已有文章一键审校降 AI 味。
 
-符合 [Agent Skills 开放标准](https://agentskills.io/specification)，支持 Claude Code、Trae、Codex、CodeBuddy 等工具直接导入使用。
+符合 [Agent Skills 开放标准](https://agentskills.io/specification)，支持 Hermes、Claude Code、Codex，以及通过 `--tool custom --skills-dir` 接入任意 Agent 工具（如 Trae、CodeBuddy 等）。
 
 ---
 

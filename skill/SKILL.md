@@ -1,6 +1,5 @@
 ---
 name: ai-write-flow
-version: 0.2.0
 description: |
   Use this skill when the user wants to write, rewrite, polish, fact-check, outline, draft, or review Chinese technical articles, AI/tooling blog posts, 公众号长文, tutorials, or existing drafts. Use for full writing workflows from input material ingestion, research, topic selection, outline approval, drafting, and three-pass review; also use when the user asks to 降AI味, 去AI腔, 润色, 改写, 审校, or make writing more natural.
 ---
@@ -27,15 +26,17 @@ description: |
 
 **触发条件：** 工作流启动时自动执行
 
-**加载文件：** `references/workspace-config.md`
+**加载文件：** `references/workspace-local.md`（不存在时回退到 `references/workspace-config.md`）
 
 **行为规范：**
 
-1. 加载 `references/workspace-config.md`，按以下优先级解析运行时工作区：
-   - 若用户在本次对话中明确指定路径 → 使用该路径
-   - 若环境变量 `AI_WRITE_FLOW_WORKSPACE` 已设置 → 使用该路径
-   - 若 `~/Documents/workspace/ai-write-flow` 存在 → 使用该路径（约定默认路径）
-   - 否则 → 询问用户工作区位置，等待回复后继续
+1. 首先检查 `references/workspace-local.md` 是否存在：
+   - 若存在 → 从中读取 `workspace_path` 字段，使用该路径
+   - 若不存在 → 加载 `references/workspace-config.md`，按以下优先级解析运行时工作区：
+     - 若用户在本次对话中明确指定路径 → 使用该路径
+     - 若环境变量 `AI_WRITE_FLOW_WORKSPACE` 已设置 → 使用该路径
+     - 若 `~/Documents/workspace/ai-write-flow` 存在 → 使用该路径（约定默认路径）
+     - 否则 → 询问用户工作区位置，等待回复后继续
 
 2. 解析工作区后检查 `{workspace}/briefs/` 目录
 3. 若目录为空或不存在 → 记录状态，继续执行
