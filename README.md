@@ -1,6 +1,6 @@
 # ai-write-flow
 
-![version](https://img.shields.io/badge/version-v0.1-blue)
+![version](https://img.shields.io/badge/version-v0.2.1-blue)
 
 技术博客写作 Agent Skill，适用于公众号长文、AI 工具评测、教程指南等场景。
 
@@ -63,16 +63,32 @@ ai-write-flow 输出的文章遵循固定的三层标题结构：
 ```bash
 git clone https://github.com/zhaodl1983/ai-write-flow.git
 cd ai-write-flow
+
+# Hermes
+bash scripts/install.sh --tool hermes --workspace ~/Documents/workspace/ai-write-flow
+
+# Claude Code
+bash scripts/install.sh --tool claude-code --workspace ~/Documents/workspace/ai-write-flow
+
+# Codex
+bash scripts/install.sh --tool codex --workspace ~/Documents/workspace/ai-write-flow
+
+# 自定义 Agent Skills 目录
+bash scripts/install.sh --tool custom --skills-dir ~/.your-agent/skills --workspace ~/Documents/workspace/ai-write-flow
+
+# 交互式向导（不传参数）
 bash scripts/install.sh
 ```
 
-安装向导会引导你选择工具目录（Claude Code / 自定义路径）和 workspace 路径。
+安装向导支持 Hermes / Claude Code / Codex / Custom 四种目标，以及 `--tool auto` 自动检测已安装工具。
 
-> **workspace 路径说明**：`skill/SKILL.md` 内置了一个默认路径（作者本地路径），开源用户安装时请在向导中选择模式 2（自定义 workspace），或提前设置环境变量：
+> **workspace 路径说明**：workspace 与 Skill 安装目录是两回事——安装脚本只复制 `skill/` 内容，workspace 独立存放 briefs（输入素材）、research JSON 和成品文章。
+>
+> workspace 解析优先级：**`--workspace` 参数 > 环境变量 `AI_WRITE_FLOW_WORKSPACE` > 交互询问**
+>
 > ```bash
 > export AI_WRITE_FLOW_WORKSPACE=/your/workspace/path
 > ```
-> Skill 的 workspace 解析优先级：**用户对话中指定 > 环境变量 > 默认路径 > 询问用户**
 
 ---
 
@@ -117,7 +133,7 @@ ai-write-flow/
 
 ## 用户可定制文件
 
-安装后，按需调整安装目录里的副本（`~/.claude/skills/ai-write-flow/references/`）：
+安装后，按需调整安装目录里的副本（如 `~/.hermes/skills/ai-write-flow/references/` 或 `~/.claude/skills/ai-write-flow/references/`）：
 
 | 文件 | 说明 | 建议 |
 |------|------|------|
