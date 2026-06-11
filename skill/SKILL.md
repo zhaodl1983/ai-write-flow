@@ -1,26 +1,106 @@
 ---
 name: ai-write-flow
 description: |
-  Use this skill when the user wants to write, rewrite, polish, fact-check, outline, draft, or review Chinese technical articles, AI/tooling blog posts, 公众号长文, tutorials, or existing drafts. Use for full writing workflows from input material ingestion, research, topic selection, outline approval, drafting, and three-pass review; also use when the user asks to 降AI味, 去AI腔, 润色, 改写, 审校, or make writing more natural.
+  Use this skill when the user wants to write, rewrite, polish, fact-check, outline, draft, or review Chinese technical articles, AI/tooling blog posts, 公众号长文, tutorials, or existing drafts. Use for full writing workflows from input material ingestion, research, topic selection, outline approval, drafting, and three-pass review; also use when the user asks to 降AI味, 去AI腔, 润色, 改写, 审校, or make writing more natural. Also use when the user wants to generate 图卡文案, 公众号贴图, 小红书图卡, card posts, or structured card copy for image generation systems.
 ---
 
 # ai-write-flow — 技术博客写作工作流
 
 ## 快捷入口：审校模式
 
+**优先级：** 高于所有 Step，包括 Step 0。检测到本意图时直接进入 Review 流程，不执行输出模式路由。
+
 **触发意图：** 用户传入已有文章 + 表达"降AI味 / 审校 / 去掉AI腔 / 润色"等意图
 
-**跳过步骤：** Steps 1-4 全部跳过
+**跳过步骤：** Step 0 及 Steps 1-4 全部跳过
 
-**直接加载：** `references/style-guide.md` + `references/checklist.md`
+**直接加载：** `references/fact-policy.md` + `references/style-guide.md` + `references/checklist.md`
 
 **执行流程：** 直接进入 Step 5 三遍审校（内容 → 风格 → 细节）
 
 **输出结构：** 审校报告（对话窗口展示）+ 修订后全文
 
+**事实处理规则（审校模式专项）：**
+- 审校模式不得新增、改写或强化高风险事实（版本号、性能数据、价格、模型名、发布时间等）
+- 若原文中发现缺少来源支撑的高风险事实，在审校报告的"内容审校"栏列为「待核验事实」，不替用户补全或修改
+- 文风润色不改变事实表述；如要修改数字或版本号，必须先告知用户并等待确认
+
 ---
 
-## 主流程（6 步）
+## Step 0：输出模式路由（Output Mode Routing）
+
+**触发条件：** 工作流启动时自动执行（审校快捷入口优先级更高，命中时跳过本步骤）
+
+**路由规则：**
+
+| 触发关键词 | 输出模式 | 进入流程 |
+|-----------|---------|---------|
+| 图卡 / 贴图 / 卡片 / 小红书 / card / 图卡生成系统 / 1000字以内的内容 | `card_post` | 加载 card-post-config.md，进入图卡流程 |
+| 以上均无 | `longform_article` | 继续 Step 1-6 长文流程 |
+
+**card_post 模式加载文件：**
+
+- `references/card-post-config.md`
+- `references/fact-policy.md`
+- `references/research-config.md`
+- `references/persona.md`（语气参考）
+- `references/style-guide.md`（语气参考，不强制文章结构）
+
+---
+
+## 图卡流程（card_post 模式）
+
+card_post 模式共执行 4 步：Step 1（工作区检查）→ Step 2（调研与核查）→ 卡片草稿 → 落盘输出。
+
+**Step 1 和 Step 2 与长文主流程相同**（见下方主流程章节），但 Step 2 额外执行 research-config.md 中的 `card_post 事实核查补充规则`，并在 JSON 中输出 `card_safe_claims[]` 和 `excluded_claims[]`。
+
+---
+
+### 图卡 Step 3：卡片草稿（Card Draft）
+
+**触发条件：** Step 2 调研通过后执行
+
+**加载文件：** `references/card-post-config.md`（已在 Step 0 加载）+ `references/fact-policy.md`
+
+**行为规范：**
+
+1. 基于 Step 2 的 `card_safe_claims[]`，决定信息单元数量，输出【卡片数量决策】
+2. 等待用户确认卡片数量（可微调）
+3. 用户确认后，按 card-post-config.md 的输出结构，依序输出：
+   - 【事实核查摘要】
+   - 【卡片数量决策】（确认版）
+   - 【发布配文】
+   - 【图卡内容排版】（封面图卡 + Card 01…）
+4. 所有图卡要点必须可追溯到 `card_safe_claims[]` 中 `can_use_in_card: true` 的 supported claim
+5. `excluded_claims[]` 中的事实禁止出现在发布内容（【发布配文】与【图卡内容排版】）
+
+**阻断规则：** 用户未确认卡片数量决策前，不生成图卡文案
+
+---
+
+### 图卡 Step 4：落盘输出（Card Publish）
+
+**触发条件：** 图卡 Step 3 完成后执行
+
+**行为规范：**
+
+1. 将完整输出（含事实核查摘要、卡片数量决策、发布配文、图卡内容排版）保存到：
+   `{workspace}/output/{YYYYMMDD}-card-{topic-slug}.txt`
+2. 文件名格式：`YYYYMMDD` 为今日日期，`topic-slug` 为主题的 kebab-case 版本
+3. 落盘前运行图卡校验（必须带 `--research` 做事实追溯，缺少 research JSON 时阻断，不得落盘）：
+   ```
+   python3 skill/scripts/check_card_post.py \
+       {workspace}/output/{YYYYMMDD}-card-{topic-slug}.txt \
+       --research {workspace}/research/{YYYYMMDD}-{topic-slug}.json
+   ```
+   - 若退出码非零：按错误提示修订图卡内容（修改在对话窗口内完成），重新运行校验通过后再落盘
+4. 输出保存路径供用户确认
+
+**阻断规则：** 文件写入失败时报错，列出路径，请用户检查目录是否存在
+
+---
+
+## 主流程（longform_article 模式，6 步）
 
 ### Step 1：工作区解析 & 素材检查（Workspace & Brief Check）
 
@@ -159,7 +239,7 @@ description: |
 
 **触发条件：** 用户确认选题后执行
 
-**加载文件：** `references/persona.md` + `references/style-guide.md`
+**加载文件：** `references/persona.md` + `references/style-guide.md` + `references/fact-policy.md`
 
 **行为规范（两阶段，严格顺序）：**
 
@@ -191,11 +271,11 @@ description: |
 
 **触发条件：** Step 4 正文完成后执行（或通过审校快捷入口直接触发）
 
-**加载文件：** `references/checklist.md`
+**加载文件：** `references/fact-policy.md` + `references/checklist.md`
 
 **行为规范（三遍，顺序执行）：**
 
-1. **第一遍：内容审校** — 技术准确性、数据一致性、逻辑结构
+1. **第一遍：内容审校** — 技术准确性、数据一致性、逻辑结构；**检查正文中是否有缺少来源的高风险事实**（版本号、性能数据、价格、模型名、发布时间等），发现则列入审校报告"待核验事实"栏，不替用户补全
 2. **第二遍：风格审校（降AI味）** — 套话清理、书面词替换、结构强制项、人味增强
 3. **第三遍：细节打磨** — 句长、段落、标点、朗读顺畅度
 
@@ -226,7 +306,12 @@ description: |
 
 1. 将修订后全文保存到 `{workspace}/output/{YYYYMMDD}-{title-slug}.md`
 2. 文件名格式：`YYYYMMDD` 为今日日期，`title-slug` 为标题的 kebab-case 版本
-3. 落盘前最终确认稿件符合结构规范（`#` 唯一、无 `###`、普通 `##` 有 `####` ①②③、末尾有 `## 写在最后`）；如有结构缺陷，先修复再写入
+3. 落盘前运行结构与风格校验：
+   ```
+   python3 skill/scripts/check_article.py {workspace}/output/{YYYYMMDD}-{title-slug}.md
+   ```
+   - 若退出码非零且含 `[ERROR]`：先修复结构或事实问题，再写入
+   - `[WARN]` 级警告可记录在 Step 5 审校报告中，不强制阻断
 4. 输出保存路径供用户确认
 
 **阻断规则：** 文件写入失败时报错，列出路径，请用户检查目录是否存在

@@ -8,6 +8,9 @@ from datetime import datetime, timedelta, timezone
 REQUIRED_FIELDS = ["topic", "research_date", "claims", "quality_check"]
 MAX_AGE_DAYS = 30
 
+# 仅 Tier 1 / 2a 可将 claim 标记为 supported；其余 tier 一律不支撑
+SUPPORTING_TIERS = {1, "1", "2a"}
+
 
 def _check_date(date_str: str, label: str, errors: list) -> None:
     """校验日期字段是否存在、格式合法、未超过时效门禁。"""
@@ -60,15 +63,25 @@ def validate(path: str) -> bool:
             else:
                 _check_date(source["source_date"], f"sources[{i}]", errors)
 
-    # 逐条校验 claims[].status 和 claims[].source_date，字段名统一用 claim_text
+    # 逐条校验 claims[].status、tier 门禁 和 claims[].source_date
     claims = data.get("claims", [])
     if isinstance(claims, list):
         for i, claim in enumerate(claims):
             status = claim.get("status", "")
             claim_text = claim.get("claim_text", "")
+            tier = claim.get("tier")
             if status in ("unverified", "contradicted"):
                 errors.append(f"claims[{i}] 状态为 '{status}'，未完成核查：{claim_text[:60]}")
                 print(f"[ERROR] claims[{i}] has status '{status}': {claim_text[:60]}", file=sys.stderr)
+            # Tier 门禁：只有 Tier 1 / 2a 可以标记为 supported
+            if status == "supported" and tier not in SUPPORTING_TIERS:
+                errors.append(
+                    f"claims[{i}] tier '{tier}' 不得标记为 supported（仅允许 Tier 1 / 2a）：{claim_text[:60]}"
+                )
+                print(
+                    f"[ERROR] claims[{i}] tier '{tier}' cannot be 'supported' (only Tier 1/2a allowed): {claim_text[:60]}",
+                    file=sys.stderr,
+                )
             if "source_date" not in claim:
                 errors.append(f"claims[{i}] 缺少 source_date 字段：{claim_text[:40]}")
                 print(f"[ERROR] claims[{i}] missing source_date", file=sys.stderr)

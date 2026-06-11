@@ -1,0 +1,58 @@
+{
+  "topic": "SomeAI v2.0 发布",
+  "topic_type": "product",
+  "research_date": "2026-06-12",
+  "mode": "publish_mode",
+  "output_mode": "card_post",
+  "freshness_policy": {
+    "max_age_days": 30,
+    "blocking": true
+  },
+  "card_safe_claims": [
+    {
+      "claim_id": "c001",
+      "claim_text": "SomeAI v2.0 正式发布",
+      "source_url": "https://github.com/someai/someai/releases/tag/v2.0.0",
+      "source_type": "official_release",
+      "status": "supported",
+      "can_use_in_card": true
+    }
+  ],
+  "excluded_claims": [
+    {
+      "claim_text": "速度提升 180 倍",
+      "reason": "未找到官方量化数据支撑，无 Tier 1/2a 来源"
+    },
+    {
+      "claim_text": "DeepSeek-V4 模型集成",
+      "reason": "无官方来源证明 SomeAI v2.0 原生集成 DeepSeek-V4"
+    }
+  ],
+  "sources": [
+    {
+      "tier": 1,
+      "title": "SomeAI v2.0 Release Notes",
+      "url": "https://github.com/someai/someai/releases/tag/v2.0.0",
+      "source_date": "2026-06-01"
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "c001",
+      "claim_text": "SomeAI v2.0 正式发布",
+      "tier": 1,
+      "source_url": "https://github.com/someai/someai/releases/tag/v2.0.0",
+      "source_date": "2026-06-01",
+      "evidence_quote": "Release v2.0.0",
+      "status": "supported"
+    }
+  ],
+  "quality_check": {
+    "citation_coverage": "100%",
+    "unsupported_claim_count": 0,
+    "contradiction_count": 0,
+    "discrepancy_count": 0,
+    "stale_source_count": 0,
+    "passed": true
+  }
+}

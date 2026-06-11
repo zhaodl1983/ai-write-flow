@@ -30,11 +30,14 @@ REQUIRED_REFERENCES = [
     "checklist.md",
     "persona.md",
     "workspace-config.md",
+    "fact-policy.md",
+    "card-post-config.md",
 ]
 
 REQUIRED_SCRIPTS = [
     "check_article.py",
     "validate_research.py",
+    "check_card_post.py",
 ]
 
 

@@ -1,0 +1,61 @@
+【事实核查摘要】
+
+- 已核查来源：
+  1. SomeAI v2.0 Release Notes https://github.com/someai/someai/releases/tag/v2.0.0
+
+- 可安全写入图卡的事实：
+  - SomeAI v2.0 发布 → GitHub Release
+
+- 不建议写入或必须弱化的事实：
+  - DeepSeek-V4 集成：无官方来源支撑，已排除
+
+【卡片数量决策】
+
+建议：1 张封面 + 3 张内容卡
+
+【发布配文】
+
+SomeAI v2.0 正式发布，带来全新体验。
+
+#AI #SomeAI
+
+【图卡内容排版】
+
+【封面图卡】
+
+| SomeAI v2.0 发布！
+| 全新推理引擎上线。
+|
+| [主视觉：v2.0 RELEASE]
+|
+| 底部标签：#AI #SomeAI
+
+【Card 01】
+
+| 01 版本更新
+
+| 🟢 SomeAI v2.0 正式发布
+
+| 🟢 原生支持 DeepSeek-V4 模型集成
+
+| 🟢 支持更大上下文窗口
+
+【Card 02】
+
+| 02 核心功能
+
+| 🟢 更快的响应速度
+
+| 🟢 降低 API 调用延迟
+
+| 🟢 新增流式输出支持
+
+【Card 03】
+
+| 03 快速安装
+
+| 🟢 pip install someai
+
+| 🟢 支持 Python 3.9+
+
+| 🟢 文档见官方 docs

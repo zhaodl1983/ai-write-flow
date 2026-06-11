@@ -175,6 +175,176 @@
         "不跳过没有 #### 的普通 ## 章节检查",
         "不输出检查通过"
       ]
+    },
+    {
+      "id": "card-post-hermes-release",
+      "name": "图卡模式：正常图卡生成",
+      "description": "用户提供爆款图卡参考样例，要求为新版本产品生成图卡文案，期望识别为 card_post 模式并完成事实核查和卡片生成",
+      "input": {
+        "user_message": "帮我给 Hermes Agent v0.16 出一套图卡，可以复制到图卡生成系统用。参考样式是公众号贴图风格，不超过 1000 字",
+        "briefs_files": []
+      },
+      "expected_behavior": [
+        "Step 0 识别为 card_post 模式",
+        "Step 1 执行工作区检查，briefs 为空",
+        "Step 2 执行 publish_mode 调研，完成事实核查，输出 card_safe_claims 和 excluded_claims",
+        "输出【事实核查摘要】，列出已核查来源和可安全写入的事实",
+        "输出【卡片数量决策】，按信息单元决定卡片数，不固定 6 张",
+        "等待用户确认卡片数量后生成图卡文案",
+        "输出【图卡内容排版】，包含封面图卡和内容卡",
+        "总卡片数不超过 9 张",
+        "图卡内容排版字数不超过 1000 字",
+        "unverified claim 不出现在图卡正文"
+      ],
+      "expected_not": [
+        "不把 card_post 识别为 longform_article 模式",
+        "不跳过事实核查直接生成图卡",
+        "不固定输出 6 张或 9 张卡片",
+        "不把 excluded_claims 中的事实写入图卡正文",
+        "不输出公众号长文 Markdown 结构"
+      ]
+    },
+    {
+      "id": "card-post-no-official-source",
+      "name": "图卡模式：未核验事实阻断或排除",
+      "description": "用户提供含无法核验的数据（如「提速 180 倍」），期望 card_post 模式将其列入 excluded_claims，不写入图卡正文",
+      "input": {
+        "user_message": "帮我出一套图卡，介绍新版工具速度提升了 180 倍，还有全网首个自动化推理功能，用贴图格式",
+        "briefs_files": []
+      },
+      "expected_behavior": [
+        "Step 0 识别为 card_post 模式",
+        "Step 2 事实核查发现「提速 180 倍」无官方来源支撑，标记为 excluded_claims",
+        "Step 2 事实核查发现「全网首个」无官方来源支撑，标记为 excluded_claims",
+        "输出【事实核查摘要】，在「不建议写入或必须弱化的事实」栏列出以上两条",
+        "图卡正文不出现「180 倍」等未核验数据",
+        "图卡正文不出现「全网首个」等绝对化表述",
+        "如仍能生成有效图卡则输出，否则提示用户补充可核验的信息"
+      ],
+      "expected_not": [
+        "不把未核验数据直接写入图卡正文",
+        "不把「全网首个」写入图卡",
+        "不跳过 excluded_claims 的输出",
+        "不为了凑内容把无法核验的事实改成模糊表达后塞进图卡"
+      ]
+    },
+    {
+      "id": "card-post-card-count",
+      "name": "图卡模式：卡片数量由信息单元决定",
+      "description": "复杂产品发布内容，期望卡片数量由信息单元决定，不固定 6 张，不超过 9 张",
+      "input": {
+        "user_message": "帮我出一套图卡，内容是 Claude Code v1.0 的新功能发布：新增 MCP 服务器支持、代码审查功能、多文件编辑、终端命令执行、Git 操作支持、任务跟踪系统，要贴图格式可以复制进图卡系统",
+        "briefs_files": []
+      },
+      "expected_behavior": [
+        "Step 0 识别为 card_post 模式",
+        "Step 2 执行 publish_mode 调研，核查各功能的官方来源",
+        "输出【卡片数量决策】，说明每张卡对应的信息单元",
+        "卡片数量由有效信息单元数量决定，不强制为 6 张",
+        "如信息单元 <= 8 个，卡片总数不超过 9 张（含封面）",
+        "每张内容卡只有一个核心主题",
+        "卡片之间没有重复观点"
+      ],
+      "expected_not": [
+        "不固定输出 6 张卡片",
+        "不为了凑 9 张重复观点",
+        "不把多个不相关功能塞进同一张卡",
+        "不跳过卡片数量决策直接输出图卡"
+      ]
+    },
+    {
+      "id": "card-post-check-valid",
+      "name": "check_card_post.py 对合规样例通过",
+      "description": "符合规范的图卡输出文件应通过 check_card_post.py 校验",
+      "input": {
+        "article_file": "evals/files/sample-card-valid.txt",
+        "check_command": "python3 skill/scripts/check_card_post.py evals/files/sample-card-valid.txt"
+      },
+      "expected_behavior": [
+        "check_card_post.py 退出码为 0",
+        "输出包含【图卡质量检查通过】",
+        "校验通过封面图卡、Card 编号、字数、要点数量检查"
+      ],
+      "expected_not": [
+        "不输出 [ERROR] 错误",
+        "不输出检查失败"
+      ]
+    },
+    {
+      "id": "card-post-check-excluded-in-peizhi",
+      "name": "check_card_post.py 拦截【发布配文】中的 excluded_claims",
+      "description": "excluded_claims 中的关键词出现在【发布配文】时，--research 模式应检测并报错",
+      "input": {
+        "article_file": "evals/files/sample-card-excluded-in-peizhi.txt",
+        "check_command": "python3 skill/scripts/check_card_post.py evals/files/sample-card-excluded-in-peizhi.txt --research evals/files/sample-research-excluded.json"
+      },
+      "expected_behavior": [
+        "check_card_post.py 退出码为 1",
+        "stderr 包含 [ERROR] Excluded claim token '180 倍' found in public output",
+        "输出包含【图卡质量检查报告】",
+        "报告中提示 excluded_claims 关键词出现在发布内容"
+      ],
+      "expected_not": [
+        "不输出检查通过",
+        "不因【发布配文】不在图卡内容排版中而漏检"
+      ]
+    },
+    {
+      "id": "card-post-check-english-excluded",
+      "name": "check_card_post.py 拦截图卡正文中的英文模型名 excluded_claims",
+      "description": "DeepSeek-V4 等英文混合标识符出现在图卡正文且在 excluded_claims 中时，应被检测并报错",
+      "input": {
+        "article_file": "evals/files/sample-card-english-excluded.txt",
+        "check_command": "python3 skill/scripts/check_card_post.py evals/files/sample-card-english-excluded.txt --research evals/files/sample-research-excluded.json"
+      },
+      "expected_behavior": [
+        "check_card_post.py 退出码为 1",
+        "stderr 包含 [ERROR] Excluded claim token 'DeepSeek-V4' found in public output",
+        "输出包含【图卡质量检查报告】",
+        "报告中提示英文模型名关键词命中 excluded_claims"
+      ],
+      "expected_not": [
+        "不输出检查通过",
+        "不因 DeepSeek-V4 是英文/混合 token 而漏检"
+      ]
+    },
+    {
+      "id": "validate-research-tier2b-supported",
+      "name": "validate_research.py 拦截 tier 2b + status supported 的 claim",
+      "description": "第三方博客来源（Tier 2b）不得将 claim 标记为 supported；validate_research.py 应以退出码 1 拦截",
+      "input": {
+        "article_file": "evals/files/sample-research-tier2b.json",
+        "check_command": "python3 skill/scripts/validate_research.py evals/files/sample-research-tier2b.json"
+      },
+      "expected_behavior": [
+        "validate_research.py 退出码为 1",
+        "stderr 包含 [ERROR] claims[0] tier '2b' cannot be 'supported'",
+        "输出包含【调研质量校验失败】",
+        "报告中提示 tier 2b 不得标记为 supported"
+      ],
+      "expected_not": [
+        "不输出【调研质量校验通过】",
+        "不因 quality_check.passed 为 true 而漏检 tier 门禁"
+      ]
+    },
+    {
+      "id": "validate-research-tier2-int-supported",
+      "name": "validate_research.py 拦截 tier 整型 2 + status supported 的 claim",
+      "description": "旧 schema 整型 tier 2 在 Tier 2a/2b 拆分后不在白名单内，validate_research.py 应以退出码 1 拦截",
+      "input": {
+        "article_file": "evals/files/sample-research-tier2-int.json",
+        "check_command": "python3 skill/scripts/validate_research.py evals/files/sample-research-tier2-int.json"
+      },
+      "expected_behavior": [
+        "validate_research.py 退出码为 1",
+        "stderr 包含 [ERROR] claims[0] tier '2' cannot be 'supported'",
+        "输出包含【调研质量校验失败】",
+        "报告中提示 tier 2 不在白名单内"
+      ],
+      "expected_not": [
+        "不输出【调研质量校验通过】",
+        "不因整型 2 历史兼容而漏检或降级为 WARN"
+      ]
     }
   ]
 }

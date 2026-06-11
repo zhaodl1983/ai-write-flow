@@ -10,11 +10,13 @@
 2. 文件引用实际存在（briefs_files / article_file）
 3. expected_behavior / expected_not 均为非空列表
 4. 每个 scenario 的触发路径可识别
+5. script 场景：实际执行 check_command 并校验期望退出码
 
 用法：python evals/run_evals.py [evals.json 路径]
 """
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -32,11 +34,13 @@ REQUIRED_SCRIPT_INPUT = ["article_file", "check_command"]
 WORKFLOW_TRIGGER_KEYWORDS = [
     "Step 1", "Step 2", "Step 3", "Step 4", "Step 5", "Step 6",
     "审校", "降AI味", "降ai味", "briefs", "阻断",
+    "card_post", "图卡", "卡片", "贴图",
+    "事实核查", "核查", "excluded_claims", "card_safe_claims",
 ]
 
 # 用于识别触发路径的关键词（script 类）
 SCRIPT_TRIGGER_KEYWORDS = [
-    "check_article", "exit", "ERROR", "通过", "失败", "校验",
+    "check_article", "check_card_post", "exit", "ERROR", "通过", "失败", "校验",
 ]
 
 
@@ -114,6 +118,47 @@ def _check_input_fields(scenario: dict, sc_type: str) -> list[str]:
     return errors
 
 
+def _get_expected_exit_code(scenario: dict):
+    """从 expected_behavior 中推断期望退出码，找不到返回 None。"""
+    for line in scenario.get("expected_behavior", []):
+        if "退出码为 0" in line:
+            return 0
+        if "退出码为 1" in line:
+            return 1
+    return None
+
+
+def _run_script_command(scenario: dict, base_dir: Path) -> list[str]:
+    """执行 script 场景的 check_command 并校验退出码，返回错误列表。"""
+    sc_id = scenario.get("id", "?")
+    cmd = scenario.get("input", {}).get("check_command", "")
+    if not cmd:
+        return []
+    expected_code = _get_expected_exit_code(scenario)
+    if expected_code is None:
+        return []
+    try:
+        result = subprocess.run(
+            cmd, shell=True, cwd=str(base_dir),
+            capture_output=True, text=True, timeout=30,
+        )
+        actual_code = result.returncode
+        if actual_code != expected_code:
+            print(
+                f"[ERROR] scenario '{sc_id}' exit code mismatch: expected {expected_code}, got {actual_code}",
+                file=sys.stderr,
+            )
+            print(f"  stdout: {result.stdout[:200].strip()}", file=sys.stderr)
+            print(f"  stderr: {result.stderr[:200].strip()}", file=sys.stderr)
+            return [
+                f"scenario '{sc_id}' 命令退出码不符：期望 {expected_code}，实际 {actual_code}（cmd: {cmd[:80]}）"
+            ]
+    except subprocess.TimeoutExpired:
+        print(f"[ERROR] scenario '{sc_id}' command timed out: {cmd[:80]}", file=sys.stderr)
+        return [f"scenario '{sc_id}' 命令超时（30s）：{cmd[:80]}"]
+    return []
+
+
 def run(evals_path: Path) -> bool:
     try:
         with open(evals_path, encoding="utf-8") as f:
@@ -169,6 +214,8 @@ def run(evals_path: Path) -> bool:
 
         errors.extend(_check_trigger_path(sc, sc_type))
         errors.extend(_check_file_refs(sc, base_dir, sc_type))
+        if sc_type == "script":
+            errors.extend(_run_script_command(sc, base_dir))
 
     if errors:
         print("\n【Eval 质量门禁检查失败】")

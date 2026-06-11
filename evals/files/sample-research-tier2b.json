@@ -1,0 +1,38 @@
+{
+  "topic": "SomeAI v2.0 发布（Tier 2b bypass 测试用例）",
+  "topic_type": "product",
+  "research_date": "2026-06-12",
+  "mode": "publish_mode",
+  "output_mode": "card_post",
+  "freshness_policy": {
+    "max_age_days": 30,
+    "blocking": true
+  },
+  "sources": [
+    {
+      "tier": "2b",
+      "title": "SomeAI 速度测评 — 第三方博客",
+      "url": "https://techblog.example.com/someai-v2-benchmark",
+      "source_date": "2026-06-05"
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "c001",
+      "claim_text": "速度提升 180 倍",
+      "tier": "2b",
+      "source_url": "https://techblog.example.com/someai-v2-benchmark",
+      "source_date": "2026-06-05",
+      "evidence_quote": "SomeAI v2.0 is 180x faster according to our internal benchmark",
+      "status": "supported"
+    }
+  ],
+  "quality_check": {
+    "citation_coverage": "100%",
+    "unsupported_claim_count": 0,
+    "contradiction_count": 0,
+    "discrepancy_count": 0,
+    "stale_source_count": 0,
+    "passed": true
+  }
+}

@@ -1,0 +1,75 @@
+【事实核查摘要】
+
+- 已核查来源：
+  1. Hermes Agent v0.16.0 Release Notes https://github.com/hermes-agent/hermes/releases/tag/v0.16.0
+  2. Hermes Agent 官方文档 https://docs.hermes-agent.com/desktop
+
+- 可安全写入图卡的事实：
+  - Hermes Agent v0.16.0 发布了原生桌面端（支持 macOS / Windows / Linux） → GitHub Release
+  - 桌面端无需命令行，支持点击安装 → 官方文档
+  - 新增 Surface 模式，所有工具调用转为图形界面操作 → GitHub Release
+
+- 不建议写入或必须弱化的事实：
+  - 无
+
+【卡片数量决策】
+
+建议：1 张封面 + 3 张内容卡
+原因：
+- 信息单元 1：桌面端发布（核心卖点）
+- 信息单元 2：Surface 模式能力
+- 信息单元 3：安装与平台支持
+
+未做成独立卡片的信息：
+- 内部架构变化：证据不足，官方未在 Release Notes 中说明
+
+【发布配文】
+
+Hermes Agent v0.16 正式发布，这次更新对普通用户最友好的一点：终于不用命令行了。
+
+新的桌面端支持 macOS、Windows、Linux，点击安装即可使用。Surface 模式把所有工具调用都转成了图形界面，截图、搜索、写文件，全都看得见。
+
+对于长期用 CLI 版的同学，这次也保留了完整的命令行支持，两种模式可以切换。
+
+#AI #Agent #HermesAgent #生产力工具
+
+【图卡内容排版】
+
+【封面图卡】
+
+| Hermes Agent 重磅更新！
+| 告别命令行，全场景桌面端来了。
+|
+| [主视觉：v0.16 SURFACE RELEASE]
+|
+| 底部标签：#AI #Agent #HermesAgent #生产力
+
+【Card 01】
+
+| 01 桌面端正式发布
+
+| 🟢 支持 macOS / Windows / Linux 三平台
+
+| 🟢 点击安装，无需命令行操作
+
+| 🟢 与 CLI 版完全兼容，可并行使用
+
+【Card 02】
+
+| 02 Surface 模式：让工具调用变得可见
+
+| 🟢 所有工具调用转为图形界面操作
+
+| 🟢 截图、搜索、文件操作均可可视化跟踪
+
+| 🟢 适合不熟悉终端的普通用户快速上手
+
+【Card 03】
+
+| 03 快速安装
+
+| 🟢 官网下载安装包，双击即可启动
+
+| 🟢 首次启动自动配置环境，无手动配置
+
+| 🟢 已有 CLI 版用户可直接升级，配置兼容

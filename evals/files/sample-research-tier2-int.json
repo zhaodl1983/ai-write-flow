@@ -1,0 +1,33 @@
+{
+  "topic": "SomeAI v2.0 发布（Tier 2 整型 bypass 测试用例）",
+  "topic_type": "product",
+  "research_date": "2026-06-12",
+  "mode": "publish_mode",
+  "sources": [
+    {
+      "tier": 2,
+      "title": "SomeAI v2.0 评测 — 作者博客",
+      "url": "https://author.example.com/someai-v2",
+      "source_date": "2026-06-05"
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "c001",
+      "claim_text": "速度提升 180 倍",
+      "tier": 2,
+      "source_url": "https://author.example.com/someai-v2",
+      "source_date": "2026-06-05",
+      "evidence_quote": "SomeAI v2 is 180x faster",
+      "status": "supported"
+    }
+  ],
+  "quality_check": {
+    "citation_coverage": "100%",
+    "unsupported_claim_count": 0,
+    "contradiction_count": 0,
+    "discrepancy_count": 0,
+    "stale_source_count": 0,
+    "passed": true
+  }
+}

@@ -1,12 +1,29 @@
 # ai-write-flow
 
-![version](https://img.shields.io/badge/version-v0.2.2-blue)
+![version](https://img.shields.io/badge/version-v0.3.0-blue)
 
-技术博客写作 Agent Skill，适用于公众号长文、AI 工具评测、教程指南等场景。
+技术博客写作 Agent Skill，适用于公众号长文、AI 工具评测、教程指南，以及公众号贴图 / 小红书图卡等场景。
 
-支持从选题讨论、调研核查、骨架确认到正文撰写和三遍审校的完整 6 步写作流程，也支持对已有文章一键审校降 AI 味。
+支持两种输出模式：
+- **longform_article**：从选题讨论、调研核查、骨架确认到正文撰写和三遍审校的完整 6 步写作流程，也支持对已有文章一键审校降 AI 味
+- **card_post**：事实核查 + 卡片数量决策 + 可直接复制到图卡生成系统的结构化图卡文案
 
-符合 [Agent Skills 开放标准](https://agentskills.io/specification)，支持 Hermes、Claude Code、Codex，以及通过 `--tool custom --skills-dir` 接入任意 Agent 工具（如 Trae、CodeBuddy 等）。
+符合 [Agent Skills 开放标准](https://agentskills.io/specification)，支持 Hermes、Claude Code、Codex，以及通过 `--tool custom --skills-dir` 接入任意 Agent 工具。
+
+---
+
+## 输出模式
+
+| 模式 | 用途 | 输出形态 |
+|------|------|---------|
+| `longform_article` | 公众号长文 / 技术博客 / 教程 / 深度评测 | 标准 Markdown 长文（.md） |
+| `card_post` | 公众号贴图 / 小红书图卡 / 图卡生成系统文案 | 结构化卡片文案（.txt），可直接复制 |
+
+Skill 在启动时（Step 0）自动识别用户意图，路由到对应模式：
+
+- 用户提到「图卡 / 贴图 / 卡片 / 小红书 / 1000 字以内」→ `card_post`
+- 其他情况 → `longform_article`
+- 用户传入已有文章要求审校 → 审校快捷入口（跳过模式路由）
 
 ---
 
@@ -97,27 +114,29 @@ bash scripts/install.sh
 ```
 ai-write-flow/
 ├── skill/                    # Skill 安装包（唯一可分发内容）
-│   ├── SKILL.md              # 主入口：6 步工作流 + 快捷审校入口
+│   ├── SKILL.md              # 主入口：Step 0 路由 + 图卡流程 + 长文 6 步流程 + 审校入口
 │   ├── references/           # 运行时规则文件（AI 按需加载）
-│   │   ├── research-config.md   # 调研行为规范（Layer 1-4 + 时效门禁）
+│   │   ├── fact-policy.md       # 全局事实核验输出门禁（两种模式共享）
+│   │   ├── research-config.md   # 调研行为规范（Layer 1-4 + 时效门禁 + card_post 补充）
+│   │   ├── card-post-config.md  # 图卡模式：字数/卡片数/输出格式/事实规则
 │   │   ├── style-guide.md       # 写作风格硬约束（禁用词、句长、结构）
-│   │   ├── checklist.md         # 三遍审校清单
+│   │   ├── checklist.md         # 三遍审校清单（含图卡模式审校）
 │   │   ├── persona.md           # 作者画像（可个人定制）
-│   │   ├── workspace-config.md  # 工作区路径与安全规则（回退配置）
-│   │   ├── workspace-local.md   # 安装脚本生成，写入本机 workspace 路径（Step 1 优先读取）
+│   │   ├── workspace-config.md  # 工作区路径与安全规则（回退配置；workspace-local.md 由 install.sh 生成，不进入源码包）
 │   │   └── image-config.md      # 配图 API 配置（可选扩展）
 │   ├── assets/
 │   │   └── brief-template.md    # 写作素材简报模板
 │   └── scripts/              # 质量校验脚本
 │       ├── validate_research.py # 校验调研 JSON schema 与时效
-│       └── check_article.py     # 校验成品文章风格与结构
+│       ├── check_article.py     # 校验成品文章风格与结构
+│       └── check_card_post.py   # 校验图卡文案（字数/卡片数/要点/高风险词）
 ├── workspace/                # 本地运行时目录（不提交 Git）
 │   ├── briefs/               # INPUT：写作素材（PDF、MD、截图等）
 │   ├── research/             # OUTPUT：调研 JSON
-│   ├── output/               # OUTPUT：成品文章 .md
+│   ├── output/               # OUTPUT：成品文章 .md + 图卡文案 .txt
 │   └── images/               # OUTPUT：配图（可选）
 ├── evals/                    # 评估测试（不进入安装副本）
-│   ├── evals.json            # 场景用例定义
+│   ├── evals.json            # 场景用例定义（含 card_post 场景）
 │   ├── run_evals.py          # 可执行质量门禁
 │   └── files/                # 测试素材文件
 ├── docs/                     # 设计决策文档
@@ -148,7 +167,7 @@ ai-write-flow/
 
 ## 触发方式
 
-### 完整写作流程（6 步）
+### 完整写作流程（longform_article，6 步）
 
 ```
 帮我写一篇关于 Claude Code 的 MCP 工具开发的文章
@@ -164,20 +183,45 @@ Skill 自动执行：解析工作区 → 检查 briefs → 调研核查 → 选�
 帮我审校这篇文章，降低 AI 味
 ```
 
-跳过 Steps 1-4，直接进入三遍审校（内容 → 风格 → 细节）。
+跳过 Steps 0-4，直接进入三遍审校（内容 → 风格 → 细节）。
+
+### 图卡文案（card_post）
+
+```
+帮我给 Hermes Agent v0.16 出一套图卡，可以复制到图卡生成系统，不超过 1000 字
+```
+
+```
+帮我做一套小红书图卡，介绍这个工具的 3 个核心功能
+```
+
+Skill 自动执行：调研核查（事实核查摘要）→ 卡片数量决策 → 生成可直接复制的图卡文案 → 落盘输出（.txt）。
 
 ---
 
 ## 工作流概览
 
+### longform_article 模式
+
 | Step | 名称 | 核心行为 | 阻断条件 |
 |------|------|---------|---------|
+| Step 0 | 输出模式路由 | 识别用户意图，路由到 longform_article | 无 |
 | Step 1 | 工作区 & 素材检查 | 解析 workspace → 加载 briefs，生成材料清单 | 无法解析 workspace |
 | Step 2 | 调研 | briefs 有内容用三段式核查；无内容跑全量 Layer 1-4 | 质量检查不通过 / 发现差异 |
 | Step 3 | 选题讨论 | 生成 3-4 个方向，含工作量 / 测试需求 | 用户未确认选题 |
-| Step 4 | 两阶段创作 | 骨架确认 → 正文填充 | 骨架未获用户确认 |
+| Step 4 | 两阶段创作 | 骨架确认 → 正文填充（加载 fact-policy.md 输出门禁）| 骨架未获用户确认 |
 | Step 5 | 三遍审校 | 内容 → 风格（降 AI 味）→ 细节 | 无 |
 | Step 6 | 落盘输出 | 保存到 `workspace/output/{date}-{slug}.md` | 文件写入失败 |
+
+### card_post 模式
+
+| Step | 名称 | 核心行为 | 阻断条件 |
+|------|------|---------|---------|
+| Step 0 | 输出模式路由 | 识别图卡意图，加载 card-post-config.md + fact-policy.md | 无 |
+| Step 1 | 工作区 & 素材检查 | 同 longform_article | 无法解析 workspace |
+| Step 2 | 调研与核查 | 同 longform_article + 输出 card_safe_claims / excluded_claims | 质量检查不通过 / 发现差异 |
+| Step 3 | 卡片草稿 | 卡片数量决策 → 用户确认 → 生成图卡文案 | 用户未确认卡片数量 |
+| Step 4 | 落盘输出 | 保存到 `workspace/output/{date}-card-{slug}.txt` | 文件写入失败 |
 
 ### Step 2 调研核查机制
 
@@ -196,6 +240,9 @@ python3 skill/scripts/validate_research.py workspace/research/YYYYMMDD-topic.jso
 
 # 校验成品文章（禁用词 + 长句 + 结构完整性）
 python3 skill/scripts/check_article.py workspace/output/YYYYMMDD-title.md
+
+# 校验图卡文案（字数 + 卡片数 + 要点数 + 高风险词 + 必要区块）
+python3 skill/scripts/check_card_post.py workspace/output/YYYYMMDD-card-topic.txt
 
 # 运行 eval 质量门禁
 python3 evals/run_evals.py

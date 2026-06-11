@@ -1,6 +1,7 @@
 # research-config.md — 调研行为规范
 
 > AI 执行 Step 2 调研时的机器可执行配置。不是给人读的文档，是行为约束。
+> 输出门禁（哪些 claim 可进入最终输出）见 `references/fact-policy.md`。
 
 ---
 
@@ -70,12 +71,16 @@ Layer 4  时效门禁      30 天统一硬门禁，不达标直接阻断
 
 ## Layer 2：来源分层（Source Tiers）
 
-| Tier | 来源类型 | 能否支撑发布级事实 |
-|------|---------|----------------|
+| Tier | 来源类型 | 能否支撑发布级高风险事实 |
+|------|---------|----------------------|
 | 1 | 官方文档、release notes、公告、论文原文、GitHub releases | ✅ 是 |
-| 2 | 作者/维护者博客、技术演讲、实验室说明 | ✅ 是 |
-| 3 | 权威科技媒体（TechCrunch、The Verge 等） | ❌ 仅用于找线索 |
+| 2a | **官方维护者声明**：项目创始人/核心维护者以官方身份发布的博客、GitHub Issue/PR 评论、公开演讲（明确代表项目立场）| ✅ 是 |
+| 2b | **第三方分析线索**：非官方技术博客、媒体分析、实验室报告、社区转述 | ❌ 仅用于找线索，不支撑高风险字段 |
+| 3 | 权威科技媒体（TechCrunch、The Verge 等）| ❌ 仅用于找线索 |
 | 4 | 社区帖子、论坛、问答 | ❌ 仅用于找线索 |
+
+**高风险字段（版本号、性能数据、价格、模型名、平台数量、安装命令、发布时间）必须由 Tier 1 或 Tier 2a 来源支撑。**
+Tier 2b 不得作为高风险字段的充分来源，即使该来源看起来"权威"。
 
 ---
 
@@ -165,3 +170,47 @@ Layer 4  时效门禁      30 天统一硬门禁，不达标直接阻断
 - 任何来源没有明确日期
 - `quality_check.passed == false`
 - 发布正文中出现未标注的旧资料
+
+---
+
+## card_post 事实核查补充规则
+
+当 `output_mode == "card_post"` 时，在 Step 2 标准调研结果之上额外执行：
+
+### 额外输出字段
+
+研究 JSON 必须在标准字段之外，额外输出：
+
+```json
+{
+  "output_mode": "card_post",
+  "card_safe_claims": [
+    {
+      "claim_id": "c001",
+      "claim_text": "string",
+      "source_url": "string",
+      "source_type": "official_release | official_docs | official_website",
+      "status": "supported",
+      "can_use_in_card": true
+    }
+  ],
+  "excluded_claims": [
+    {
+      "claim_text": "string",
+      "reason": "未找到官方来源支撑 | 与官方来源矛盾 | 来源超过 30 天"
+    }
+  ]
+}
+```
+
+### 字段规则
+
+- `card_safe_claims[]`：从 `claims[]` 中筛选 `status == "supported"` 且 `tier in ["1", "2a"]` 的 claim，标记 `can_use_in_card: true`
+- `excluded_claims[]`：所有 `status != "supported"` 或 `tier not in ["1", "2a"]` 的 claim，必须列入此处并说明原因
+- 图卡每条要点必须可追溯到 `card_safe_claims[]` 中的某条 claim
+- `excluded_claims[]` 中的事实禁止出现在发布内容（【发布配文】与【图卡内容排版】）中（可在【事实核查摘要】的「不建议写入」栏提及）
+
+### 与标准调研的关系
+
+- card_post 不降低调研质量要求，标准 brief_first_verify_mode / publish_mode 的阻断条件同样有效
+- card_post 的额外字段是标准调研结果之上的派生输出，不替换原有 `claims[]`
