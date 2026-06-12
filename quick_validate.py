@@ -32,12 +32,14 @@ REQUIRED_REFERENCES = [
     "workspace-config.md",
     "fact-policy.md",
     "card-post-config.md",
+    "illustration-config.md",
 ]
 
 REQUIRED_SCRIPTS = [
     "check_article.py",
     "validate_research.py",
     "check_card_post.py",
+    "check_illustration_plan.py",
 ]
 
 

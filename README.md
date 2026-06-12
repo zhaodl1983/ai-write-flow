@@ -1,12 +1,15 @@
 # ai-write-flow
 
-![version](https://img.shields.io/badge/version-v0.3.0-blue)
+![version](https://img.shields.io/badge/version-v0.4.0-blue)
 
 技术博客写作 Agent Skill，适用于公众号长文、AI 工具评测、教程指南，以及公众号贴图 / 小红书图卡等场景。
 
 支持两种输出模式：
 - **longform_article**：从选题讨论、调研核查、骨架确认到正文撰写和三遍审校的完整 6 步写作流程，也支持对已有文章一键审校降 AI 味
 - **card_post**：事实核查 + 卡片数量决策 + 可直接复制到图卡生成系统的结构化图卡文案
+
+可选扩展：
+- **章节 SVG 配图**：基于 `##` 章节语义生成配图规划，确认后调用 svg-architect 逐张生成 SVG 并插入文章
 
 符合 [Agent Skills 开放标准](https://agentskills.io/specification)，支持 Hermes、Claude Code、Codex，以及通过 `--tool custom --skills-dir` 接入任意 Agent 工具。
 
@@ -119,24 +122,25 @@ ai-write-flow/
 │   │   ├── fact-policy.md       # 全局事实核验输出门禁（两种模式共享）
 │   │   ├── research-config.md   # 调研行为规范（Layer 1-4 + 时效门禁 + card_post 补充）
 │   │   ├── card-post-config.md  # 图卡模式：字数/卡片数/输出格式/事实规则
+│   │   ├── illustration-config.md  # 章节 SVG 配图扩展：语义分类/风格映射/配图流程
 │   │   ├── style-guide.md       # 写作风格硬约束（禁用词、句长、结构）
 │   │   ├── checklist.md         # 三遍审校清单（含图卡模式审校）
 │   │   ├── persona.md           # 作者画像（可个人定制）
-│   │   ├── workspace-config.md  # 工作区路径与安全规则（回退配置；workspace-local.md 由 install.sh 生成，不进入源码包）
-│   │   └── image-config.md      # 配图 API 配置（可选扩展）
+│   │   └── workspace-config.md  # 工作区路径与安全规则（回退配置；workspace-local.md 由 install.sh 生成，不进入源码包）
 │   ├── assets/
 │   │   └── brief-template.md    # 写作素材简报模板
 │   └── scripts/              # 质量校验脚本
-│       ├── validate_research.py # 校验调研 JSON schema 与时效
-│       ├── check_article.py     # 校验成品文章风格与结构
-│       └── check_card_post.py   # 校验图卡文案（字数/卡片数/要点/高风险词）
+│       ├── validate_research.py      # 校验调研 JSON schema 与时效
+│       ├── check_article.py          # 校验成品文章风格与结构
+│       ├── check_card_post.py        # 校验图卡文案（字数/卡片数/要点/高风险词）
+│       └── check_illustration_plan.py  # 校验配图计划 JSON（生成 SVG 前运行）
 ├── workspace/                # 本地运行时目录（不提交 Git）
 │   ├── briefs/               # INPUT：写作素材（PDF、MD、截图等）
 │   ├── research/             # OUTPUT：调研 JSON
 │   ├── output/               # OUTPUT：成品文章 .md + 图卡文案 .txt
-│   └── images/               # OUTPUT：配图（可选）
+│   └── images/               # OUTPUT：章节 SVG 配图（可选）
 ├── evals/                    # 评估测试（不进入安装副本）
-│   ├── evals.json            # 场景用例定义（含 card_post 场景）
+│   ├── evals.json            # 场景用例定义（含 card_post + illustration 场景）
 │   ├── run_evals.py          # 可执行质量门禁
 │   └── files/                # 测试素材文件
 ├── docs/                     # 设计决策文档
@@ -159,7 +163,6 @@ ai-write-flow/
 |------|------|------|
 | `persona.md` | 写作身份、目标读者、发布平台、语气偏好 | 建议改 |
 | `workspace-config.md` | 工作区路径与安全规则（回退配置，`workspace-local.md` 不存在时使用）| 开源用户改 |
-| `image-config.md` | 配图 API 配置（默认不启用）| 按需改 |
 
 > `persona.md` 是软配置，`style-guide.md` 中的硬约束优先级更高，冲突时以 `style-guide.md` 为准。
 
@@ -196,6 +199,19 @@ Skill 自动执行：解析工作区 → 检查 briefs → 调研核查 → 选�
 ```
 
 Skill 自动执行：调研核查（事实核查摘要）→ 卡片数量决策 → 生成可直接复制的图卡文案 → 落盘输出（.txt）。
+
+### 章节 SVG 配图（可选扩展）
+
+```
+给这篇文章按章节生成 SVG 配图，先给我配图大纲，确认后再生成
+```
+
+流程：
+1. 解析文章 `##` 章节，排除开头段落和 `## 写在最后`
+2. 提取每章核心观点和关键词，判断图表类型（流程图 / 对比图 / 分层架构图 / 概念图等）
+3. 输出【章节配图规划】表格，等待用户确认
+4. 确认后调用 svg-architect 逐张生成 `wechat_article` SVG（1200×500）
+5. 将图片引用插入文章对应章节（`####` 小标题组之后）
 
 ---
 

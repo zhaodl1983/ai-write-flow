@@ -1,0 +1,29 @@
+{
+  "output_dir": "workspace/images/20260612-test",
+  "items": [
+    {
+      "unit_id": "section1",
+      "section_title": "写在最后",
+      "core_claim": "",
+      "keywords": [],
+      "diagram_type": "unknown_chart",
+      "svg_style": "photorealistic",
+      "platform": "instagram",
+      "visual_brief": "",
+      "labels": ["a", "b", "c", "d", "e", "f", "g"],
+      "output_path": "workspace/other-dir/01-test.png"
+    },
+    {
+      "unit_id": "section-02",
+      "section_title": "路径穿越测试章节",
+      "core_claim": "测试 ../ 路径穿越检测",
+      "keywords": ["安全"],
+      "diagram_type": "flowchart",
+      "svg_style": "tech_dark",
+      "platform": "wechat_article",
+      "visual_brief": "测试用图，验证路径穿越拦截",
+      "labels": ["A", "B"],
+      "output_path": "workspace/images/20260612-test/../escape.svg"
+    }
+  ]
+}

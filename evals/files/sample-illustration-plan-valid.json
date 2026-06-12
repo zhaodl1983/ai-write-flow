@@ -1,0 +1,30 @@
+{
+  "article_path": "workspace/output/20260612-ai-write-flow-illustration.md",
+  "output_dir": "workspace/images/20260612-ai-write-flow-illustration",
+  "items": [
+    {
+      "unit_id": "section-01",
+      "section_title": "从灵感到发布，中间断在哪里",
+      "core_claim": "传统写作流程在素材、结构、配图三个环节各自断开。",
+      "keywords": ["流程", "断裂", "素材"],
+      "diagram_type": "flowchart",
+      "svg_style": "tech_dark",
+      "platform": "wechat_article",
+      "visual_brief": "横向步骤流程图，展示从灵感到发布的五个节点，中间用断裂箭头标出流程中断。",
+      "labels": ["灵感", "素材", "结构", "配图", "发布"],
+      "output_path": "workspace/images/20260612-ai-write-flow-illustration/01-liu-cheng-duan-zai-na.svg"
+    },
+    {
+      "unit_id": "section-02",
+      "section_title": "人工配图和自动配图的差异",
+      "core_claim": "自动配图在时间成本、一致性和可复用性三个维度全面优于人工配图。",
+      "keywords": ["对比", "人工", "自动", "一致性"],
+      "diagram_type": "comparison",
+      "svg_style": "minimal_clean",
+      "platform": "wechat_article",
+      "visual_brief": "左右对比图，左侧「人工配图」右侧「自动配图」，三行对比时间成本、一致性、可复用性。",
+      "labels": ["人工配图", "自动配图", "时间", "一致性", "复用"],
+      "output_path": "workspace/images/20260612-ai-write-flow-illustration/02-ren-gong-vs-zi-dong.svg"
+    }
+  ]
+}

@@ -36,6 +36,7 @@ WORKFLOW_TRIGGER_KEYWORDS = [
     "审校", "降AI味", "降ai味", "briefs", "阻断",
     "card_post", "图卡", "卡片", "贴图",
     "事实核查", "核查", "excluded_claims", "card_safe_claims",
+    "配图", "illustration", "svg-architect", "diagram_type", "flowchart",
 ]
 
 # 用于识别触发路径的关键词（script 类）

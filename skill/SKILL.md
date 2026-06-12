@@ -1,7 +1,7 @@
 ---
 name: ai-write-flow
 description: |
-  Use this skill when the user wants to write, rewrite, polish, fact-check, outline, draft, or review Chinese technical articles, AI/tooling blog posts, 公众号长文, tutorials, or existing drafts. Use for full writing workflows from input material ingestion, research, topic selection, outline approval, drafting, and three-pass review; also use when the user asks to 降AI味, 去AI腔, 润色, 改写, 审校, or make writing more natural. Also use when the user wants to generate 图卡文案, 公众号贴图, 小红书图卡, card posts, or structured card copy for image generation systems.
+  Use this skill when the user wants to write, rewrite, polish, fact-check, outline, draft, or review Chinese technical articles, AI/tooling blog posts, 公众号长文, tutorials, or existing drafts. Use for full writing workflows from input material ingestion, research, topic selection, outline approval, drafting, and three-pass review; also use when the user asks to 降AI味, 去AI腔, 润色, 改写, 审校, or make writing more natural. Also use when the user wants to generate 图卡文案, 公众号贴图, 小红书图卡, card posts, or structured card copy for image generation systems. Also use when the user wants to generate article illustrations, section-level SVG diagrams, 章节配图, 分段配图, or insert SVG visuals into a written article.
 ---
 
 # ai-write-flow — 技术博客写作工作流
@@ -36,7 +36,13 @@ description: |
 | 触发关键词 | 输出模式 | 进入流程 |
 |-----------|---------|---------|
 | 图卡 / 贴图 / 卡片 / 小红书 / card / 图卡生成系统 / 1000字以内的内容 | `card_post` | 加载 card-post-config.md，进入图卡流程 |
+| 配图 / 章节配图 / 分段配图 / SVG 插图 / 给文章加图 | `longform_article + illustration_extension` | 加载 illustration-config.md，进入章节配图流程 |
 | 以上均无 | `longform_article` | 继续 Step 1-6 长文流程 |
+
+**illustration_extension 路由规则：**
+- 用户只要求「给已有文章配图」→ 跳过 Step 1-4 写作流程，直接进入章节 SVG 配图扩展
+- 用户要求「写文章并配图」→ 先完成 Step 1-6，文章稳定后再进入章节 SVG 配图扩展
+- 未明确要求配图时，不主动生成配图，不打断写作流程
 
 **card_post 模式加载文件：**
 
@@ -322,6 +328,20 @@ card_post 模式共执行 4 步：Step 1（工作区检查）→ Step 2（调研
 
 详细工作区解析规则、目录说明与安全约束见 `references/workspace-config.md`。
 
-## 配图扩展（可选）
+## 章节 SVG 配图扩展（optional）
 
-For optional article image generation, read `references/image-config.md` only when the user explicitly asks to generate or insert images.
+Only run this flow when the user explicitly asks for article illustrations, section images, 分段配图, 章节配图, or SVG visuals.
+
+Load `references/illustration-config.md`.
+
+Flow:
+1. Check article structure — if `###` found, stop and ask user to fix structure first.
+2. Parse the final article into illustration units: each ordinary `##` section is a candidate; `## 写在最后` and the opening paragraphs are excluded.
+3. Extract each unit's `core_claim`, `keywords`, and classify its `diagram_type` via Semantic Shape Classification.
+4. Produce a **【章节配图规划】** prompt outline table and wait for user confirmation.
+5. After confirmation, save the plan JSON to `{workspace}/images/{YYYYMMDD}-{article-slug}/illustration-plan.json` (include `output_path` for each item).
+6. Run `python3 skill/scripts/check_illustration_plan.py {workspace}/images/{YYYYMMDD}-{article-slug}/illustration-plan.json` — if non-zero, fix the plan and re-run until it passes.
+7. For each approved unit, use the local svg-architect skill to generate one `wechat_article` SVG (1200×500) and save to the `output_path` specified in the plan.
+8. Insert Markdown image references into the corresponding article sections (after `####` group, before first body paragraph).
+
+Never call image2 or external image APIs in the default flow.

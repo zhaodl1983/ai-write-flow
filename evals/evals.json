@@ -345,6 +345,146 @@
         "不输出【调研质量校验通过】",
         "不因整型 2 历史兼容而漏检或降级为 WARN"
       ]
+    },
+    {
+      "id": "illustration-plan-existing-article",
+      "name": "章节配图：已有文章生成配图规划",
+      "description": "用户提供已有文章，要求按章节生成 SVG 配图，期望先输出配图大纲并等待确认，确认后才生成 SVG",
+      "input": {
+        "user_message": "给这篇文章按章节生成 SVG 配图，先给我配图大纲，确认后再生成",
+        "article_file": "evals/files/sample-article-illustration-units.md",
+        "briefs_files": []
+      },
+      "expected_behavior": [
+        "识别为 illustration_extension，跳过 Step 1-4 写作流程",
+        "加载 references/illustration-config.md",
+        "按普通 ## 章节生成配图候选单元，共 4 个（排除开头段落和 ## 写在最后）",
+        "排除 ## 写在最后 章节",
+        "输出【章节配图规划】表格",
+        "每个配图项包含：核心观点、关键词、图表类型、svg-architect 风格、visual brief、插入位置",
+        "等待用户确认后才生成 SVG，等待期间不调用 svg-architect"
+      ],
+      "expected_not": [
+        "不调用 image2",
+        "不调用外部图片 API",
+        "不为 #### 单独配图",
+        "不为 ## 写在最后 生成配图",
+        "不为开头段落生成配图",
+        "未获用户确认前不生成 SVG",
+        "未获用户确认前不插入图片引用"
+      ]
+    },
+    {
+      "id": "illustration-semantic-classification",
+      "name": "章节配图：语义形态分类正确",
+      "description": "针对 sample-article-illustration-units.md，每个章节应被分类为正确的 diagram_type",
+      "input": {
+        "user_message": "给这篇文章按章节生成 SVG 配图大纲",
+        "article_file": "evals/files/sample-article-illustration-units.md",
+        "briefs_files": []
+      },
+      "expected_behavior": [
+        "「从灵感到发布，中间断在哪里」被判定为 flowchart（步骤/流程形态）",
+        "「人工配图和自动配图的差异」被判定为 comparison（差异/权衡形态）",
+        "「一个完整系统包含哪些层」被判定为 layered_architecture（包含/分层形态）",
+        "「配图的本质是降低理解成本」被判定为 concept_diagram（抽象概念形态）"
+      ],
+      "expected_not": [
+        "不把流程章节判定为 bento_summary",
+        "不把对比章节判定为 flowchart",
+        "不把分层章节判定为 relationship_map"
+      ]
+    },
+    {
+      "id": "illustration-confirmation-gate",
+      "name": "章节配图：确认门禁阻断生成",
+      "description": "配图大纲展示后，未收到用户确认前不得生成 SVG 或写入图片引用",
+      "input": {
+        "user_message": "给这篇文章按章节生成 SVG 配图",
+        "article_file": "evals/files/sample-article-illustration-units.md",
+        "briefs_files": []
+      },
+      "expected_behavior": [
+        "输出【章节配图规划】表格后明确等待用户确认",
+        "在等待确认阶段输出「请确认以上配图规划」或类似阻断提示",
+        "确认前不调用 svg-architect skill",
+        "确认前不修改文章内容，不插入图片引用"
+      ],
+      "expected_not": [
+        "不在输出大纲后自动进入 SVG 生成阶段",
+        "不在用户未明确确认时假设确认",
+        "不把配图大纲和 SVG 生成合并为一步完成"
+      ]
+    },
+    {
+      "id": "illustration-svg-architect-handoff",
+      "name": "章节配图：用户确认后调用 svg-architect",
+      "description": "用户确认配图规划后，正确调用 svg-architect skill 生成 SVG 并插入文章",
+      "input": {
+        "user_message": "确认，开始生成",
+        "article_file": "evals/files/sample-article-illustration-units.md",
+        "prior_context": "已输出配图规划，用户发送确认",
+        "briefs_files": []
+      },
+      "expected_behavior": [
+        "用户确认后保存配图计划 JSON",
+        "运行 check_illustration_plan.py 校验通过后才调用 svg-architect",
+        "每张图指定 platform: wechat_article，尺寸 1200×500",
+        "输出文件路径为 workspace/images/{YYYYMMDD}-{slug}/{NN}-{section-slug}.svg",
+        "生成完成后将 Markdown 图片引用插入对应 ## 章节的 #### 小标题组之后"
+      ],
+      "expected_not": [
+        "不在 check_illustration_plan.py 校验前调用 svg-architect",
+        "不生成 PNG 作为主交付物",
+        "不使用 Base64 内联图片",
+        "不调用 image2 或外部图片 API",
+        "不把图片引用插入 ## 写在最后 章节",
+        "不把图片引用插入开头段落"
+      ]
+    },
+    {
+      "id": "illustration-plan-check-valid",
+      "name": "check_illustration_plan.py 对合规计划通过",
+      "description": "完整且合规的配图计划 JSON 应通过 check_illustration_plan.py 校验，退出码为 0",
+      "input": {
+        "article_file": "evals/files/sample-illustration-plan-valid.json",
+        "check_command": "python3 skill/scripts/check_illustration_plan.py evals/files/sample-illustration-plan-valid.json"
+      },
+      "expected_behavior": [
+        "check_illustration_plan.py 退出码为 0",
+        "输出包含【配图计划校验通过】"
+      ],
+      "expected_not": [
+        "不输出 [ERROR]",
+        "不输出【配图计划校验失败】"
+      ]
+    },
+    {
+      "id": "illustration-plan-check-invalid",
+      "name": "check_illustration_plan.py 对非法计划失败",
+      "description": "包含多种违规的计划 JSON 应被 check_illustration_plan.py 检测失败，退出码为 1。包含 item[0]（多字段违规）和 item[1]（../ 路径穿越）两类测试",
+      "input": {
+        "article_file": "evals/files/sample-illustration-plan-invalid.json",
+        "check_command": "python3 skill/scripts/check_illustration_plan.py evals/files/sample-illustration-plan-invalid.json"
+      },
+      "expected_behavior": [
+        "check_illustration_plan.py 退出码为 1",
+        "输出包含【配图计划校验失败】",
+        "stderr 包含 [ERROR] article_path is missing",
+        "stderr 包含 [ERROR] items[0] section_title contains conclusion section",
+        "stderr 包含 [ERROR] items[0] unit_id 'section1' does not match",
+        "stderr 包含 [ERROR] items[0] output_path must end with .svg",
+        "stderr 包含 [ERROR] items[0] output_path is not under output_dir",
+        "stderr 包含 [ERROR] items[0] invalid diagram_type",
+        "stderr 包含 [ERROR] items[0] invalid svg_style",
+        "stderr 包含 [ERROR] items[0] platform must be 'wechat_article'",
+        "stderr 包含 [ERROR] items[1] output_path contains '..' traversal"
+      ],
+      "expected_not": [
+        "不输出【配图计划校验通过】",
+        "不因 items[1] output_path 以 output_dir 为前缀而漏检 '../' 穿越",
+        "不因部分字段合法而漏检其余违规项"
+      ]
     }
   ]
 }
