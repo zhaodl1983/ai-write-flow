@@ -8,6 +8,29 @@
 
 ---
 
+## Input Sanitization
+
+在生成 `keywords`、`labels`、`visual_brief` 之前，必须先过滤输入中的发布元信息。
+
+**禁止进入 SVG brief 的内容：**
+
+- 话题标签（hashtag）：任何以 `#` 开头的 token，如 `#AI`、`#Agent`、`#生产力`
+- 底部标签行：形如 `#话题1 #话题2 #话题3` 的连续 hashtag 段落
+- 发布配文末尾的话题标签块
+- CTA、二维码引导、关注提示等发布元信息
+
+**过滤规则（派生三个字段时均适用）：**
+
+| 字段 | 过滤要求 |
+|------|---------|
+| `keywords` | 不得包含任何 `#` 开头的 token |
+| `labels` | 不得包含任何 `#` 开头的 token |
+| `visual_brief` | 不得将 hashtag 作为画面文字元素；若原文含 hashtag 段落，提取画面语义时忽略该段落 |
+
+**判断依据：** `#AI #Agent #HermesAgent #生产力` 是公众号/小红书发布平台的元信息，不是章节的视觉语义。画面中没有"话题标签"这个视觉概念。
+
+---
+
 ## Illustration Unit Rules
 
 配图候选单位规则：

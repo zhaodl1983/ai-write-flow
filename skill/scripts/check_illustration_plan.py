@@ -29,6 +29,8 @@ VALID_SVG_STYLES = {
 CONCLUSION_TITLE = "写在最后"
 UNIT_ID_PATTERN = re.compile(r"^section-\d{2}$")
 FILENAME_PATTERN = re.compile(r"^\d{2}-.+\.svg$")
+HASHTAG_TOKEN_PATTERN = re.compile(r"^#")
+HASHTAG_IN_TEXT_PATTERN = re.compile(r"(?:^|\s)(#[\w一-鿿]+)", re.MULTILINE)
 
 
 def _normpath(p: str) -> str:
@@ -140,10 +142,37 @@ def validate(plan: dict) -> tuple[list[str], list[str]]:
                 f"实际：{len(labels) if isinstance(labels, list) else '非列表'}"
             )
             print(f"[ERROR] {prefix} labels must be a list of 1-6 items", file=sys.stderr)
+        elif isinstance(labels, list):
+            for label in labels:
+                if isinstance(label, str) and HASHTAG_TOKEN_PATTERN.match(label):
+                    errors.append(
+                        f"{prefix} labels 包含 hashtag token {label!r} → hashtag 是发布元信息，不得作为画面标签"
+                    )
+                    print(f"[ERROR] {prefix} labels contain hashtag token '{label}' — publishing metadata must be excluded", file=sys.stderr)
 
-        if not item.get("visual_brief", "").strip():
+        keywords = item.get("keywords", [])
+        if isinstance(keywords, list):
+            for kw in keywords:
+                if isinstance(kw, str) and HASHTAG_TOKEN_PATTERN.match(kw):
+                    errors.append(
+                        f"{prefix} keywords 包含 hashtag token {kw!r} → hashtag 是发布元信息，不得作为关键词"
+                    )
+                    print(f"[ERROR] {prefix} keywords contain hashtag token '{kw}' — publishing metadata must be excluded", file=sys.stderr)
+
+        visual_brief = item.get("visual_brief", "").strip()
+        if not visual_brief:
             errors.append(f"{prefix} visual_brief 不得为空")
             print(f"[ERROR] {prefix} visual_brief is empty", file=sys.stderr)
+        else:
+            hashtag_hits = HASHTAG_IN_TEXT_PATTERN.findall(visual_brief)
+            if len(hashtag_hits) >= 2:
+                warnings.append(
+                    f"{prefix} visual_brief 疑似包含发布 hashtag（{', '.join(hashtag_hits[:3])}）→ 请确认这些 tag 是画面语义而非发布元信息"
+                )
+                print(
+                    f"[WARN] {prefix} visual_brief may contain publishing hashtags: {hashtag_hits[:3]}",
+                    file=sys.stderr,
+                )
 
         if not item.get("core_claim", "").strip():
             warnings.append(f"{prefix} core_claim 为空，建议补充一句话核心论断")

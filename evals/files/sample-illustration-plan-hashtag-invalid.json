@@ -1,0 +1,18 @@
+{
+  "article_path": "workspace/output/20260612-test-hashtag.md",
+  "output_dir": "workspace/images/20260612-test-hashtag",
+  "items": [
+    {
+      "unit_id": "section-01",
+      "section_title": "AI Agent 的工作原理",
+      "core_claim": "Agent 通过规划-执行-反馈循环完成复杂任务",
+      "keywords": ["#AI", "Agent", "规划"],
+      "diagram_type": "flowchart",
+      "svg_style": "tech_dark",
+      "platform": "wechat_article",
+      "visual_brief": "横向三步骤流程图：规划 → 执行 → 反馈",
+      "labels": ["规划", "#Agent", "反馈"],
+      "output_path": "workspace/images/20260612-test-hashtag/01-agent-loop.svg"
+    }
+  ]
+}

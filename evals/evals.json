@@ -485,6 +485,49 @@
         "不因 items[1] output_path 以 output_dir 为前缀而漏检 '../' 穿越",
         "不因部分字段合法而漏检其余违规项"
       ]
+    },
+    {
+      "id": "illustration-hashtag-sanitization-workflow",
+      "name": "章节配图：LLM 规划时不把 hashtag 写入 labels 和 keywords",
+      "description": "文章或发布配文含 #AI #Agent #HermesAgent #生产力 等话题标签时，LLM 生成配图规划不得把这些 hashtag 放入 labels[]、keywords[] 或 visual_brief",
+      "input": {
+        "user_message": "给这篇文章按章节生成 SVG 配图大纲，文章末尾发布配文含 #AI #Agent #HermesAgent #生产力",
+        "article_file": "evals/files/sample-article-illustration-units.md",
+        "briefs_files": []
+      },
+      "expected_behavior": [
+        "识别为 illustration_extension，加载 illustration-config.md",
+        "生成配图规划时，labels[] 不包含 #AI、#Agent、#HermesAgent、#生产力 等 hashtag token",
+        "生成配图规划时，keywords[] 不包含任何 # 开头的 token",
+        "visual_brief 中不出现连续 hashtag 段落，不把话题标签作为画面文字元素",
+        "输出【章节配图规划】表格，等待用户确认"
+      ],
+      "expected_not": [
+        "不把 #AI #Agent 等 hashtag 写入 labels[]",
+        "不把 #生产力 等话题标签写入 keywords[]",
+        "不把发布配文底部的 hashtag 行视为视觉关键词",
+        "不在未获用户确认时生成 SVG"
+      ]
+    },
+    {
+      "id": "illustration-plan-check-hashtag-invalid",
+      "name": "check_illustration_plan.py 拦截 labels/keywords 中的 hashtag token",
+      "description": "配图计划 JSON 的 labels[] 或 keywords[] 中含 #Agent、#AI 等 hashtag token 时，check_illustration_plan.py 应以退出码 1 拦截",
+      "input": {
+        "article_file": "evals/files/sample-illustration-plan-hashtag-invalid.json",
+        "check_command": "python3 skill/scripts/check_illustration_plan.py evals/files/sample-illustration-plan-hashtag-invalid.json"
+      },
+      "expected_behavior": [
+        "check_illustration_plan.py 退出码为 1",
+        "输出包含【配图计划校验失败】",
+        "stderr 包含 [ERROR] items[0] labels contain hashtag token '#Agent'",
+        "stderr 包含 [ERROR] items[0] keywords contain hashtag token '#AI'"
+      ],
+      "expected_not": [
+        "不输出【配图计划校验通过】",
+        "不因 hashtag 是中英混合而漏检",
+        "不把 hashtag 拦截降级为 WARN"
+      ]
     }
   ]
 }
