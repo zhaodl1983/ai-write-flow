@@ -1,6 +1,6 @@
 # ai-write-flow
 
-![version](https://img.shields.io/badge/version-v0.4.1-blue)
+![version](https://img.shields.io/badge/version-v0.4.2-blue)
 
 技术博客写作 Agent Skill，适用于公众号长文、AI 工具评测、教程指南，以及公众号贴图 / 小红书图卡等场景。
 

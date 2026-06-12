@@ -528,6 +528,26 @@
         "不因 hashtag 是中英混合而漏检",
         "不把 hashtag 拦截降级为 WARN"
       ]
+    },
+    {
+      "id": "illustration-plan-check-hashtag-space-invalid",
+      "name": "check_illustration_plan.py 拦截前导空格的 hashtag token",
+      "description": "labels[] 或 keywords[] 中含 ' #Agent'、' #AI' 等前导空格的 hashtag token 时，check_illustration_plan.py 应以退出码 1 拦截，不得因空格而绕过校验",
+      "input": {
+        "article_file": "evals/files/sample-illustration-plan-hashtag-space-invalid.json",
+        "check_command": "python3 skill/scripts/check_illustration_plan.py evals/files/sample-illustration-plan-hashtag-space-invalid.json"
+      },
+      "expected_behavior": [
+        "check_illustration_plan.py 退出码为 1",
+        "输出包含【配图计划校验失败】",
+        "stderr 包含 [ERROR] items[0] labels contain hashtag token '#Agent'",
+        "stderr 包含 [ERROR] items[0] keywords contain hashtag token '#AI'"
+      ],
+      "expected_not": [
+        "不输出【配图计划校验通过】",
+        "不因 ' #Agent' 有前导空格而跳过 ERROR",
+        "不因 ' #AI' 有前导空格而跳过 ERROR"
+      ]
     }
   ]
 }

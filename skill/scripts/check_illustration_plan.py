@@ -144,20 +144,20 @@ def validate(plan: dict) -> tuple[list[str], list[str]]:
             print(f"[ERROR] {prefix} labels must be a list of 1-6 items", file=sys.stderr)
         elif isinstance(labels, list):
             for label in labels:
-                if isinstance(label, str) and HASHTAG_TOKEN_PATTERN.match(label):
+                if isinstance(label, str) and HASHTAG_TOKEN_PATTERN.match(label.strip()):
                     errors.append(
                         f"{prefix} labels 包含 hashtag token {label!r} → hashtag 是发布元信息，不得作为画面标签"
                     )
-                    print(f"[ERROR] {prefix} labels contain hashtag token '{label}' — publishing metadata must be excluded", file=sys.stderr)
+                    print(f"[ERROR] {prefix} labels contain hashtag token '{label.strip()}' — publishing metadata must be excluded", file=sys.stderr)
 
         keywords = item.get("keywords", [])
         if isinstance(keywords, list):
             for kw in keywords:
-                if isinstance(kw, str) and HASHTAG_TOKEN_PATTERN.match(kw):
+                if isinstance(kw, str) and HASHTAG_TOKEN_PATTERN.match(kw.strip()):
                     errors.append(
                         f"{prefix} keywords 包含 hashtag token {kw!r} → hashtag 是发布元信息，不得作为关键词"
                     )
-                    print(f"[ERROR] {prefix} keywords contain hashtag token '{kw}' — publishing metadata must be excluded", file=sys.stderr)
+                    print(f"[ERROR] {prefix} keywords contain hashtag token '{kw.strip()}' — publishing metadata must be excluded", file=sys.stderr)
 
         visual_brief = item.get("visual_brief", "").strip()
         if not visual_brief:
