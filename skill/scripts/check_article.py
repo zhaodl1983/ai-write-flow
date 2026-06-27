@@ -51,7 +51,7 @@ def _parse_structure(content):
       h1_count: int
       has_h3: bool
       opening_has_h4: bool  (#### appears before first ##)
-      sections: list of {'title': str, 'h4s': list[str], 'is_conclusion': bool}
+      sections: list of {'title': str, 'h4s': list[str], 'h4_blocks': list[dict], 'is_conclusion': bool}
     """
     clean = _strip_fenced_code(content)
     lines = clean.split('\n')
@@ -71,7 +71,7 @@ def _parse_structure(content):
             first_h2_seen = True
             title = s[3:].strip()
             is_conclusion = (title == CONCLUSION_TITLE)
-            current_section = {'title': title, 'h4s': [], 'is_conclusion': is_conclusion}
+            current_section = {'title': title, 'h4s': [], 'h4_blocks': [], 'is_conclusion': is_conclusion}
             sections.append(current_section)
         elif re.match(r'^### (?!#)', s):
             has_h3 = True
@@ -79,7 +79,13 @@ def _parse_structure(content):
             if not first_h2_seen:
                 opening_has_h4 = True
             elif current_section is not None:
-                current_section['h4s'].append(s[5:].strip())
+                h4_text = s[5:].strip()
+                current_section['h4s'].append(h4_text)
+                current_section['h4_blocks'].append({'title': h4_text, 'has_body': False})
+        elif current_section is not None and current_section.get('h4_blocks') and s.strip():
+            # Any non-heading content after the latest #### belongs to that subheading block.
+            if not re.match(r'^#{1,6} ', s):
+                current_section['h4_blocks'][-1]['has_body'] = True
 
     return h1_count, has_h3, opening_has_h4, sections
 
@@ -154,6 +160,12 @@ def _check_structure(content):
             for err in _check_numbering(h4s, title):
                 errors.append(err)
                 print(f"[ERROR] Numbering error in section '## {title}'", file=sys.stderr)
+            for block in sec.get('h4_blocks', []):
+                if not block.get('has_body'):
+                    errors.append(
+                        f"章节「## {title}」的「#### {block['title']}」后缺少正文段落 → 标准结构要求每个 #### 后接对应正文"
+                    )
+                    print(f"[ERROR] H4 block in section '## {title}' has no body: {block['title']}", file=sys.stderr)
             count = len(h4s)
             if count < 2 or count > 3:
                 warnings.append(f"章节「## {title}」有 {count} 个 #### 小标题，建议 2-3 个")

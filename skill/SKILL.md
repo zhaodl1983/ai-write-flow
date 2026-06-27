@@ -255,19 +255,19 @@ card_post 模式共执行 4 步：Step 1（工作区检查）→ Step 2（调研
 - **骨架必须严格使用以下三层标题结构（不可省略）：**
   - `#` 文章标题（全文唯一，仅出现一次）
   - `##` 一级章节标题（每个 `##` 是未来章节配图的候选单位）
-  - `#### ①②③` 每个 `##` 章节内的扫读小标题组
+  - `#### ①②③` 每个普通 `##` 章节内的扫读小标题，后接对应正文段落
 - **结构硬约束：**
   - 禁止使用 `###` 层级
   - 开头段落（`#` 后、第一个 `##` 前）不允许出现 `####`
   - 每个普通 `##` 章节建议包含 2-3 个 `####` 小标题，编号从 `①` 开始，按 `①→②→③` 连续递增
   - 每个 `##` 内的 `####` 编号独立，重新从 `①` 开始
-  - 结尾章节固定使用 `## 写在最后`，不要求 `####` 小标题，不参与章节配图候选
+  - 结尾章节固定使用 `## 写在最后`，必须是最后一个 `##` 且唯一出现一次，不得包含 `####`，不参与章节配图候选
 - 骨架在对话窗口展示，等待用户确认
 
 **第二阶段：正文填充**
 - 用户确认骨架后才进入正文
 - 正文必须遵守 style-guide.md 的所有硬约束，并完成禁用表达清单检查
-- 正文中的 `####` 小标题组位于该章节所有正文段落之前
+- 正文必须使用标准章节块结构：每个普通 `##` 下按 `#### ① 小标题` → 正文段落 → `#### ② 小标题` → 正文段落的方式展开，不得把所有 `####` 集中堆在章节开头
 
 **阻断规则：** 第一阶段骨架必须获得用户明确确认（"确认"/"可以"/"好的"），否则不进入第二阶段
 
@@ -289,9 +289,9 @@ card_post 模式共执行 4 步：Step 1（工作区检查）→ Step 2（调研
 - `#` 标题在全文出现且仅出现一次
 - 文中不存在 `###` 层级标题
 - 开头段落（`#` 后、第一个 `##` 前）未出现 `####`
-- 每个普通 `##` 章节包含编号 `####` 小标题组（至少 `①`）
+- 每个普通 `##` 章节建议包含 2-3 个编号 `####` 小标题
 - 每个 `##` 内的 `####` 编号从 `①` 开始、连续递增
-- 全文包含固定结尾 `## 写在最后`
+- 全文以固定结尾 `## 写在最后` 作为最后一个 `##` 章节，全文唯一，且该章节不包含 `####`
 
 **输出结构：**
 - 审校报告：在对话窗口完整展示（含每遍发现的问题）
@@ -342,6 +342,6 @@ Flow:
 5. After confirmation, save the plan JSON to `{workspace}/images/{YYYYMMDD}-{article-slug}/illustration-plan.json` (include `output_path` for each item).
 6. Run `python3 skill/scripts/check_illustration_plan.py {workspace}/images/{YYYYMMDD}-{article-slug}/illustration-plan.json` — if non-zero, fix the plan and re-run until it passes.
 7. For each approved unit, use the local svg-architect skill to generate one `wechat_article` SVG (1200×500) and save to the `output_path` specified in the plan.
-8. Insert Markdown image references into the corresponding article sections (after `####` group, before first body paragraph).
+8. Insert Markdown image references into the corresponding article sections (after the ordinary `##` heading, before the first `####` subheading).
 
 Never call image2 or external image APIs in the default flow.

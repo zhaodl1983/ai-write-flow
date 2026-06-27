@@ -116,7 +116,7 @@
 
 ### 图 NN：{h2_title}
 
-- 插入位置：该 `##` 章节的 `####` 小标题组之后、第一段正文之前
+- 插入位置：该普通 `##` 标题之后、第一个 `####` 小标题之前
 - 平台规格：wechat_article / 1200×500
 - 图表类型：{diagram_type}
 - svg-architect 风格：{svg_style}
@@ -172,17 +172,18 @@ python3 skill/scripts/check_illustration_plan.py {workspace}/images/{YYYYMMDD}-{
 
 ## Insertion Policy
 
-插入位置：普通 `##` 章节内，`####` 小标题组之后、第一段正文之前。
+插入位置：普通 `##` 章节内，`##` 标题之后、第一个 `####` 小标题之前。
 
 ```markdown
 ## {h2_title}
 
-#### ① 小标题
-#### ② 小标题
-
 ![图 NN：{h2_title}](../images/{YYYYMMDD}-{article-slug}/{NN}-{section-slug}.svg)
 
-正文开始…
+#### ① 小标题
+正文段落...
+
+#### ② 小标题
+正文段落...
 ```
 
 图片引用格式（相对路径，文章 .md 位于 `workspace/output/`，图片位于 `workspace/images/`）：
