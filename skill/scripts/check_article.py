@@ -36,7 +36,27 @@ BANNED_EXPRESSIONS = [
 SENTENCE_WARN = 35
 SENTENCE_ERROR = 120
 
-REVIEW_REPORT_MARKERS = ["【审校报告】", "【第一遍】", "【第二遍】", "【第三遍】"]
+REVIEW_REPORT_MARKERS = ["【审校报告】", "【第一遍】", "【第二遍】", "【第三遍】", "【第四遍】"]
+
+CHATBOT_ARTIFACTS = [
+    "希望这对你有帮助", "如果你需要我可以继续", "以下是", "当然可以",
+]
+
+GENERIC_FUTURE_CLOSERS = [
+    "未来可期", "让我们拭目以待", "拭目以待", "只有时间会给出答案", "未来值得期待",
+]
+
+PROMO_INFLATION = [
+    "史诗级", "全网最强", "革命性", "颠覆式", "重新定义", "极致体验", "不容错过",
+]
+
+FALSE_DEPTH_PATTERNS = [
+    re.compile(r'不是[^。！？\n]{1,40}而是[^。！？\n]{1,60}'),
+    re.compile(r'与其说[^。！？\n]{1,40}不如说[^。！？\n]{1,60}'),
+    re.compile(r'重要的不是[^。！？\n]{1,40}而是[^。！？\n]{1,60}'),
+]
+
+SHORT_SENTENCE_BURST = re.compile(r'(?:[^。！？\n]{2,8}[。！？]){4,}')
 
 
 def _strip_fenced_code(text):
@@ -195,6 +215,44 @@ def check(path):
         if marker in content:
             issues.append("文件含审校报告标记「" + marker + "」→ 审校报告不得写入最终稿件，请删除")
             print("[ERROR] Review report marker '" + marker + "' found in article file", file=sys.stderr)
+
+    double_dash_count = content.count("——")
+    single_dash_count = content.replace("——", "").count("—")
+    dash_count = double_dash_count + single_dash_count
+    if dash_count > 1:
+        issues.append(f"破折号 / em dash 出现 {dash_count} 次 → 每篇最多 1 处，优先改成句号、逗号或冒号")
+        print(f"[WARN] Dash/em dash appears {dash_count} time(s)", file=sys.stderr)
+
+    for expr in CHATBOT_ARTIFACTS:
+        count = content.count(expr)
+        if count > 0:
+            issues.append(f"含聊天残留「{expr}」（出现 {count} 次）→ 删除，不得进入最终稿")
+            print(f"[ERROR] Chatbot artifact '{expr}' found {count} time(s)", file=sys.stderr)
+
+    for expr in GENERIC_FUTURE_CLOSERS:
+        count = content.count(expr)
+        if count > 0:
+            issues.append(f"含万能展望结尾「{expr}」（出现 {count} 次）→ 改成具体事实或下一步行动")
+            print(f"[WARN] Generic future closer '{expr}' found {count} time(s)", file=sys.stderr)
+
+    for expr in PROMO_INFLATION:
+        count = content.count(expr)
+        if count > 0:
+            issues.append(f"含宣传/夸张表达「{expr}」（出现 {count} 次）→ 改成可验证事实")
+            print(f"[WARN] Promotional inflation '{expr}' found {count} time(s)", file=sys.stderr)
+
+    for pattern in FALSE_DEPTH_PATTERNS:
+        matches = pattern.findall(content)
+        if matches:
+            issues.append(f"发现 {len(matches)} 处“不是 X 而是 Y / 与其说 X 不如说 Y”结构 → 只保留真正服务论证的一处，其余改成直接判断")
+            for m in matches[:3]:
+                issues.append("  …" + m[:60] + "…")
+            print(f"[WARN] False-depth construction found {len(matches)} time(s)", file=sys.stderr)
+
+    bursts = SHORT_SENTENCE_BURST.findall(content)
+    if bursts:
+        issues.append(f"发现 {len(bursts)} 处连续短句轰炸 → 合并成自然句，保留必要节奏点")
+        print(f"[WARN] Short-sentence burst found {len(bursts)} time(s)", file=sys.stderr)
 
     reading_pattern = re.compile("(扩展阅读|延伸阅读|参考资料|相关链接)", re.IGNORECASE)
     if not reading_pattern.search(content):
