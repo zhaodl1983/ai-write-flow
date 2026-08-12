@@ -252,22 +252,24 @@ card_post 模式共执行 4 步：Step 1（工作区检查）→ Step 2（调研
 **第一阶段：骨架生成**
 - 基于选定选题和 persona.md 生成文章骨架
 - 骨架包含：标题、各章节标题、每章预计字数、开头方式
-- **骨架必须严格使用以下三层标题结构（不可省略）：**
+- **骨架必须严格使用以下正文标题结构（不可省略）：**
   - `#` 文章标题（全文唯一，仅出现一次）
-  - `##` 一级章节标题（每个 `##` 是未来章节配图的候选单位）
-  - `#### ①②③` 每个普通 `##` 章节内的扫读小标题，后接对应正文段落
+  - `## 一、二、三、` 一级章节标题（每个普通 `##` 是未来章节配图的候选单位）
+  - `### 1. 2. 3.` 章节内二级小节标题
+  - `#### ① ② ③` 小节内扫读小标题，后接对应正文段落
 - **结构硬约束：**
-  - 禁止使用 `###` 层级
-  - 开头段落（`#` 后、第一个 `##` 前）不允许出现 `####`
-  - 每个普通 `##` 章节建议包含 2-3 个 `####` 小标题，编号从 `①` 开始，按 `①→②→③` 连续递增
-  - 每个 `##` 内的 `####` 编号独立，重新从 `①` 开始
-  - 结尾章节固定使用 `## 写在最后`，必须是最后一个 `##` 且唯一出现一次，不得包含 `####`，不参与章节配图候选
+  - 开头段落（`#` 后、第一个 `##` 前）不允许出现 `###` 或 `####`
+  - 普通 `##` 章节编号从 `一、` 开始，按 `一、→二、→三、` 连续递增
+  - 每个普通 `##` 章节建议包含 2-3 个 `###` 小节，编号从 `1.` 开始，按 `1.→2.→3.` 连续递增
+  - 每个 `###` 小节建议包含 1-3 个 `####` 扫读小标题，编号从 `①` 开始，按 `①→②→③` 连续递增
+  - `###` 编号在每个普通 `##` 内独立重置；`####` 编号在每个 `###` 内独立重置
+  - 结尾章节固定使用 `## 写在最后`，必须是最后一个 `##` 且唯一出现一次，不加编号，不得包含 `###` 或 `####`，不参与章节配图候选
 - 骨架在对话窗口展示，等待用户确认
 
 **第二阶段：正文填充**
 - 用户确认骨架后才进入正文
 - 正文必须遵守 style-guide.md 的所有硬约束，并完成禁用表达清单检查
-- 正文必须使用标准章节块结构：每个普通 `##` 下按 `#### ① 小标题` → 正文段落 → `#### ② 小标题` → 正文段落的方式展开，不得把所有 `####` 集中堆在章节开头
+- 正文必须使用标准章节块结构：`## 一、章节` → `### 1. 小节` → `#### ① 扫读小标题` → 正文段落，并按层级交替展开；不得把所有 `###` 或 `####` 集中堆在章节开头
 
 **阻断规则：** 第一阶段骨架必须获得用户明确确认（"确认"/"可以"/"好的"），否则不进入第二阶段
 
@@ -299,11 +301,12 @@ card_post 模式共执行 4 步：Step 1（工作区检查）→ Step 2（调研
 
 **结构审校（随审校流程同步执行，发现问题即报告）：**
 - `#` 标题在全文出现且仅出现一次
-- 文中不存在 `###` 层级标题
-- 开头段落（`#` 后、第一个 `##` 前）未出现 `####`
-- 每个普通 `##` 章节建议包含 2-3 个编号 `####` 小标题
-- 每个 `##` 内的 `####` 编号从 `①` 开始、连续递增
-- 全文以固定结尾 `## 写在最后` 作为最后一个 `##` 章节，全文唯一，且该章节不包含 `####`
+- 普通 `##` 编号从 `一、` 开始、连续递增
+- 开头段落（`#` 后、第一个 `##` 前）未出现 `###` 或 `####`
+- 每个普通 `##` 章节建议包含 2-3 个编号 `###` 小节
+- 每个普通 `##` 内的 `###` 编号从 `1.` 开始、连续递增
+- 每个 `###` 内的 `####` 编号从 `①` 开始、连续递增
+- 全文以固定结尾 `## 写在最后` 作为最后一个 `##` 章节，全文唯一，且该章节不包含 `###` 或 `####`
 
 **输出结构：**
 - 审校报告：在对话窗口完整展示（含每遍发现的问题）
@@ -348,13 +351,13 @@ Only run this flow when the user explicitly asks for article illustrations, sect
 Load `references/illustration-config.md`.
 
 Flow:
-1. Check article structure — if `###` found, stop and ask user to fix structure first.
+1. Check article structure — headings must follow `## 一、` / `### 1.` / `#### ①` numbering.
 2. Parse the final article into illustration units: each ordinary `##` section is a candidate; `## 写在最后` and the opening paragraphs are excluded.
 3. Extract each unit's `core_claim`, `keywords`, and classify its `diagram_type` via Semantic Shape Classification.
 4. Produce a **【章节配图规划】** prompt outline table and wait for user confirmation.
 5. After confirmation, save the plan JSON to `{workspace}/images/{YYYYMMDD}-{article-slug}/illustration-plan.json` (include `output_path` for each item).
 6. Run `python3 skill/scripts/check_illustration_plan.py {workspace}/images/{YYYYMMDD}-{article-slug}/illustration-plan.json` — if non-zero, fix the plan and re-run until it passes.
 7. For each approved unit, use the local svg-architect skill to generate one `wechat_article` SVG (1200×500) and save to the `output_path` specified in the plan.
-8. Insert Markdown image references into the corresponding article sections (after the ordinary `##` heading, before the first `####` subheading).
+8. Insert Markdown image references into the corresponding article sections (after the ordinary `##` heading, before the first `###` subheading).
 
 Never call image2 or external image APIs in the default flow.
